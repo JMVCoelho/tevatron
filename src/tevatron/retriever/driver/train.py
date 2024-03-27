@@ -10,8 +10,8 @@ from transformers import (
 
 from tevatron.retriever.arguments import ModelArguments, DataArguments, \
     TevatronTrainingArguments as TrainingArguments
-from tevatron.retriever.dataset import TrainDataset
-from tevatron.retriever.collator import TrainCollator
+from tevatron.retriever.dataset import TrainDataset, TrainDatasetPreprocessed
+from tevatron.retriever.collator import TrainCollator, TrainCollatorPreprocessed
 from tevatron.retriever.modeling import DenseModel
 from tevatron.retriever.trainer import TevatronTrainer as Trainer
 from tevatron.retriever.gc_trainer import GradCacheTrainer as GCTrainer
@@ -74,8 +74,9 @@ def main():
         cache_dir=model_args.cache_dir,
     )
 
-    train_dataset = TrainDataset(data_args)
-    collator = TrainCollator(data_args, tokenizer)
+    train_dataset = TrainDataset(data_args) if data_args.dataset_path is None else TrainDatasetPreprocessed(data_args)
+    collator = TrainCollator(data_args, tokenizer) if data_args.dataset_path is None else TrainCollatorPreprocessed(data_args, tokenizer)
+    train_dataset.tokenizer = tokenizer
 
     trainer_cls = GCTrainer if training_args.grad_cache else Trainer
     trainer = trainer_cls(

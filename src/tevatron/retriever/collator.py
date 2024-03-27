@@ -61,6 +61,44 @@ class TrainCollator:
             return_tensors='pt',
         )
         return q_collated, d_collated
+    
+@dataclass
+class TrainCollatorPreprocessed:
+    data_args: DataArguments
+    tokenizer: PreTrainedTokenizer
+
+    def __call__(self, features):
+        qq = [f[0] for f in features]
+        dd = [f[1] for f in features]
+
+        if isinstance(qq[0], list):
+            qq = sum(qq, [])
+        if isinstance(dd[0], list):
+            dd = sum(dd, [])
+
+        if self.data_args.append_eos_token:
+            for q in qq:
+                q['input_ids'] = q['input_ids'] + [self.tokenizer.eos_token_id]
+                
+            for d in dd:
+                d['input_ids'] = d['input_ids'] + [self.tokenizer.eos_token_id]
+
+        q_collated = self.tokenizer.pad(
+            qq,
+            padding='max_length',
+            max_length=self.data_args.query_max_len,
+            pad_to_multiple_of=self.data_args.pad_to_multiple_of,
+            return_tensors="pt",
+        )
+        d_collated = self.tokenizer.pad(
+            dd,
+            padding='max_length',
+            max_length=self.data_args.passage_max_len,
+            pad_to_multiple_of=self.data_args.pad_to_multiple_of,
+            return_tensors="pt",
+        )
+        
+        return q_collated, d_collated
 
 
 @dataclass

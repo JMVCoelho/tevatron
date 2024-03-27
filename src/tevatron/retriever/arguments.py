@@ -142,6 +142,10 @@ class DataArguments:
         default=False, metadata={"help": "append eos token to query and passage, this is currently used for repllama"}
     )
 
+    add_markers: bool = field(
+        default=False, metadata={"help": "add Title and Text markers to passage representation"}
+    )
+
     pad_to_multiple_of: Optional[int] = field(
         default=16,
         metadata={

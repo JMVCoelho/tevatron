@@ -83,9 +83,17 @@ def main():
     model = model.to(training_args.device)
     model.eval()
 
+    dtype = None
+    if training_args.fp16:
+        print("Set encoding precision: fp16")
+        dtype = torch.float16
+    elif training_args.bf16:
+        print("Set encoding precision: bf16")
+        dtype = torch.bfloat16
+
     for (batch_ids, batch) in tqdm(encode_loader):
         lookup_indices.extend(batch_ids)
-        with torch.cuda.amp.autocast() if training_args.fp16 else nullcontext():
+        with torch.cuda.amp.autocast(dtype=dtype) if dtype is not None else nullcontext():
             with torch.no_grad():
                 for k, v in batch.items():
                     batch[k] = v.to(training_args.device)

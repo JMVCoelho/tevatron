@@ -94,7 +94,10 @@ class EncoderModel(nn.Module):
         return self.cross_entropy(scores, target)
     
     def gradient_checkpointing_enable(self, **kwargs):
-        self.encoder.model.gradient_checkpointing_enable()
+        try:
+            self.encoder.model.gradient_checkpointing_enable()
+        except Exception:
+            self.encoder.gradient_checkpointing_enable()
 
     def _dist_gather_tensor(self, t: Optional[torch.Tensor]):
         if t is None:
@@ -116,7 +119,15 @@ class EncoderModel(nn.Module):
             train_args: TrainingArguments,
             **hf_kwargs,
     ):  
-        base_model = cls.TRANSFORMER_CLS.from_pretrained(model_args.model_name_or_path, **hf_kwargs)
+        try:
+            base_model = cls.TRANSFORMER_CLS.from_pretrained(model_args.model_name_or_path, **hf_kwargs)
+        except Exception:
+            print("Trying to load from local files with custom state dict")
+            state_dict = torch.load(f"{model_args.model_name_or_path}/pytorch_model.bin")
+            base_model = cls.TRANSFORMER_CLS.from_pretrained(model_args.model_name_or_path, local_files_only=True, state_dict=state_dict, attn_implementation="flash_attention_2", **hf_kwargs)
+
+        print(f"Model class: {base_model.__class__}")
+
         if base_model.config.pad_token_id is None:
             base_model.config.pad_token_id = 0
         if model_args.lora or model_args.lora_name_or_path:
@@ -158,7 +169,13 @@ class EncoderModel(nn.Module):
             normalize: bool = False,
             lora_name_or_path: str = None,
             **hf_kwargs):
-        base_model = cls.TRANSFORMER_CLS.from_pretrained(model_name_or_path, **hf_kwargs)
+        try:
+            base_model = cls.TRANSFORMER_CLS.from_pretrained(model_name_or_path, **hf_kwargs)
+        except Exception:
+            print("Trying to load from local files with custom state dict")
+            state_dict = torch.load(f"{model_name_or_path}/pytorch_model.bin")
+            base_model = cls.TRANSFORMER_CLS.from_pretrained(model_name_or_path, local_files_only=True, state_dict=state_dict, attn_implementation="flash_attention_2", **hf_kwargs)
+        
         if base_model.config.pad_token_id is None:
             base_model.config.pad_token_id = 0
         if lora_name_or_path:
