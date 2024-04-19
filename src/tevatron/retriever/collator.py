@@ -45,7 +45,7 @@ class TrainCollator:
         if self.data_args.append_eos_token:
             q_collated['input_ids'] = [q + [self.tokenizer.eos_token_id] for q in q_collated['input_ids']]
             d_collated['input_ids'] = [d + [self.tokenizer.eos_token_id] for d in d_collated['input_ids']]
-        
+            
         q_collated = self.tokenizer.pad(
             q_collated,
             padding=True, 
@@ -66,6 +66,7 @@ class TrainCollator:
 class TrainCollatorPreprocessed:
     data_args: DataArguments
     tokenizer: PreTrainedTokenizer
+    landmarks: bool = False
 
     def __call__(self, features):
         qq = [f[0] for f in features]
@@ -82,7 +83,13 @@ class TrainCollatorPreprocessed:
                 
             for d in dd:
                 d['input_ids'] = d['input_ids'] + [self.tokenizer.eos_token_id]
-
+                if self.landmarks:
+                    print("SHOULD NOT BE PRITTING THIS!!!!!!!!")
+                    num_tokens = len(d['input_ids'])
+                    landmarks = [(num_tokens - ((num_tokens//4) * i)) - 1 for i in range(4)]
+                    for ldmk in landmarks:
+                        d['input_ids'][ldmk] = self.tokenizer.eos_token_id
+                
         q_collated = self.tokenizer.pad(
             qq,
             padding='max_length',
@@ -90,6 +97,7 @@ class TrainCollatorPreprocessed:
             pad_to_multiple_of=self.data_args.pad_to_multiple_of,
             return_tensors="pt",
         )
+
         d_collated = self.tokenizer.pad(
             dd,
             padding='max_length',
@@ -105,6 +113,7 @@ class TrainCollatorPreprocessed:
 class EncodeCollator:
     data_args: DataArguments
     tokenizer: PreTrainedTokenizer
+    landmarks: bool = False
 
     def __call__(self, features: List[Tuple[str, str]]):
         """
@@ -125,6 +134,16 @@ class EncodeCollator:
         )
         if self.data_args.append_eos_token:
             collated_texts['input_ids'] = [x + [self.tokenizer.eos_token_id] for x in collated_texts['input_ids']]
+            
+            if self.landmarks and not self.data_args.encode_is_query:
+                print("SHOULD NOT !!!!")
+                for i in range(len(collated_texts['input_ids'])):
+                    num_tokens = len(collated_texts['input_ids'][i])
+                    landmarks = [(num_tokens - ((num_tokens//4) * i)) - 1 for i in range(4)]
+                    for ldmk in landmarks:
+                        collated_texts['input_ids'][i][ldmk] = self.tokenizer.eos_token_id
+
+                
         collated_texts = self.tokenizer.pad(
             collated_texts,
             padding=True, 

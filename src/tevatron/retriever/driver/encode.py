@@ -55,6 +55,8 @@ def main():
     
     model = DenseModel.load(
         model_args.model_name_or_path,
+        local=model_args.local,
+        repetition=model_args.repetition,
         pooling=model_args.pooling,
         normalize=model_args.normalize,
         lora_name_or_path=model_args.lora_name_or_path,
@@ -68,6 +70,7 @@ def main():
     encode_collator = EncodeCollator(
         data_args=data_args,
         tokenizer=tokenizer,
+        landmarks=(model_args.pooling == "landmark")
     )
 
     encode_loader = DataLoader(

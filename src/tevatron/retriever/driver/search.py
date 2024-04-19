@@ -8,6 +8,8 @@ from tqdm import tqdm
 
 from tevatron.retriever.searcher import FaissFlatSearcher
 
+import os
+
 import logging
 logger = logging.getLogger(__name__)
 logging.basicConfig(
@@ -57,6 +59,7 @@ def main():
     parser.add_argument('--save_ranking_to', required=True)
     parser.add_argument('--save_text', action='store_true')
     parser.add_argument('--quiet', action='store_true')
+    parser.add_argument('--use_gpu', action='store_true')
 
     args = parser.parse_args()
 
@@ -76,6 +79,9 @@ def main():
 
     q_reps, q_lookup = pickle_load(args.query_reps)
     q_reps = q_reps
+
+    #if args.use_gpu:
+    #    retriever._move_index_to_gpu()
 
     logger.info('Index Search Start')
     all_scores, psg_indices = search_queries(retriever, q_reps, look_up, args)

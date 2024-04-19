@@ -11,6 +11,8 @@ from peft import LoraConfig, TaskType, get_peft_model, PeftModel
 from transformers.file_utils import ModelOutput
 from tevatron.retriever.arguments import ModelArguments, TevatronTrainingArguments as TrainingArguments
 
+from .custom_gptneox import GPTNeoXRepeatEmbed
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -22,7 +24,6 @@ class EncoderOutput(ModelOutput):
     loss: Optional[Tensor] = None
     scores: Optional[Tensor] = None
 
-
 class EncoderModel(nn.Module):
     TRANSFORMER_CLS = AutoModel
 
@@ -31,6 +32,7 @@ class EncoderModel(nn.Module):
                  pooling: str = 'cls',
                  normalize: bool = False,
                  temperature: float = 1.0,
+                 repetition: bool = False
                  ):
         super().__init__()
         self.config = encoder.config
@@ -38,6 +40,8 @@ class EncoderModel(nn.Module):
         self.pooling = pooling
         self.normalize = normalize
         self.temperature = temperature
+        self.repetition = repetition
+
         self.cross_entropy = nn.CrossEntropyLoss(reduction='mean')
         self.is_ddp = dist.is_initialized()
         if self.is_ddp:
@@ -68,6 +72,7 @@ class EncoderModel(nn.Module):
             target = target * (p_reps.size(0) // q_reps.size(0))
 
             loss = self.compute_loss(scores / self.temperature, target)
+
             if self.is_ddp:
                 loss = loss * self.world_size  # counter average weight reduction
         # for eval
@@ -119,17 +124,38 @@ class EncoderModel(nn.Module):
             train_args: TrainingArguments,
             **hf_kwargs,
     ):  
-        try:
-            base_model = cls.TRANSFORMER_CLS.from_pretrained(model_args.model_name_or_path, **hf_kwargs)
-        except Exception:
-            print("Trying to load from local files with custom state dict")
+        if not model_args.local:
+            if "jamba" in model_args.model_name_or_path.lower():
+                from transformers import BitsAndBytesConfig
+
+                quantization_config = BitsAndBytesConfig(
+                    load_in_4bit=True,
+                    device_map="auto",
+                    llm_int8_skip_modules=["mamba"]
+                )
+                base_model = cls.TRANSFORMER_CLS.from_pretrained(model_args.model_name_or_path, 
+                                                                trust_remote_code=True,
+                                                                torch_dtype=torch.bfloat16,
+                                                                attn_implementation="flash_attention_2",
+                                                                quantization_config=quantization_config,
+                                                                **hf_kwargs)
+                print("loaded jamba!")
+            else:
+                base_model = cls.TRANSFORMER_CLS.from_pretrained(model_args.model_name_or_path, **hf_kwargs)
+            print("loaded hf model")
+        else:
+            if model_args.repetition:
+                cls.TRANSFORMER_CLS = GPTNeoXRepeatEmbed
+
             state_dict = torch.load(f"{model_args.model_name_or_path}/pytorch_model.bin")
             base_model = cls.TRANSFORMER_CLS.from_pretrained(model_args.model_name_or_path, local_files_only=True, state_dict=state_dict, attn_implementation="flash_attention_2", **hf_kwargs)
+            print("loaded local model")
 
         print(f"Model class: {base_model.__class__}")
 
         if base_model.config.pad_token_id is None:
             base_model.config.pad_token_id = 0
+
         if model_args.lora or model_args.lora_name_or_path:
             if train_args.gradient_checkpointing:
                 base_model.enable_input_require_grads()
@@ -153,29 +179,41 @@ class EncoderModel(nn.Module):
                 normalize=model_args.normalize,
                 temperature=model_args.temperature
             )
+            
         else:
+
             model = cls(
                 encoder=base_model,
                 pooling=model_args.pooling,
                 normalize=model_args.normalize,
-                temperature=model_args.temperature
+                temperature=model_args.temperature,
+                repetition = model_args.repetition
             )
+
         return model
 
     @classmethod
     def load(cls,
             model_name_or_path: str,
+            local: bool = False,
             pooling: str = 'cls',
             normalize: bool = False,
             lora_name_or_path: str = None,
+            repetition: bool = False,
             **hf_kwargs):
-        try:
+    
+        #repetition = True # remove!!!!
+        if not local:
             base_model = cls.TRANSFORMER_CLS.from_pretrained(model_name_or_path, **hf_kwargs)
-        except Exception:
-            print("Trying to load from local files with custom state dict")
+            print("loaded hf model")
+        else:
+            if repetition: # remove!!!!!
+                cls.TRANSFORMER_CLS = GPTNeoXRepeatEmbed
             state_dict = torch.load(f"{model_name_or_path}/pytorch_model.bin")
             base_model = cls.TRANSFORMER_CLS.from_pretrained(model_name_or_path, local_files_only=True, state_dict=state_dict, attn_implementation="flash_attention_2", **hf_kwargs)
-        
+            print("loaded local model")
+
+        print(f"Model class: {base_model.__class__}")
         if base_model.config.pad_token_id is None:
             base_model.config.pad_token_id = 0
         if lora_name_or_path:
@@ -191,7 +229,8 @@ class EncoderModel(nn.Module):
             model = cls(
                 encoder=base_model,
                 pooling=pooling,
-                normalize=normalize
+                normalize=normalize,
+                repetition=repetition
             )
         return model
 

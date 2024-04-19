@@ -15,12 +15,16 @@ conda activate tevatron
 
 module load cuda-11.8
 
-trained_model_name=pythia-160m-marco-docs
+#previous models:
+# pythia-160m-marco-docs | MRR=0.3532
+
+trained_model_name=pythia-160m-marco-docs-bow-pretrain-del
+base_model=/data/user_data/jmcoelho/models/pre-trained/pythia-160m-1024-marco-docs-bow-hf/
 
 deepspeed --include localhost:0,1,2,3 --master_port 26500 --module tevatron.retriever.driver.train \
   --deepspeed deepspeed/ds_zero3_config.json \
   --output_dir /data/user_data/jmcoelho/models/fine-tuned/$trained_model_name \
-  --model_name_or_path "/data/user_data/jmcoelho/models/pre-trained/pythia-160m-1024-marco-docs-hf/" \
+  --model_name_or_path $base_model  \
   --dataset_path "/data/user_data/jmcoelho/datasets/marco/documents/processed_data/pythia-160m-marco-documents-2048/train/train.jsonl" \
   --save_steps 1000 \
   --bf16 \

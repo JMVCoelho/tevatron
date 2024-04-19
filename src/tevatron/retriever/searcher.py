@@ -1,6 +1,7 @@
 import faiss
 import numpy as np
 from tqdm import tqdm
+from multiprocessing import Pool
 
 
 import logging
@@ -23,6 +24,28 @@ class FaissFlatSearcher:
 
     def search(self, q_reps: np.ndarray, k: int):
         return self.index.search(q_reps, k)
+    
+    # def _move_index_to_gpu(self):
+    #     logger.info("Moving index to GPU(s)")
+    #     ngpu = faiss.get_num_gpus()
+    #     gpu_resources = []
+    #     for i in range(ngpu):
+    #         res = faiss.StandardGpuResources()
+    #         gpu_resources.append(res)
+    #     co = faiss.GpuMultipleClonerOptions()
+    #     co.shard = True
+    #     co.usePrecomputed = False
+    #     vres = faiss.GpuResourcesVector()
+    #     vdev = faiss.Int32Vector()
+    #     if 0 >= ngpu:
+    #         raise ValueError(
+    #             f"Faiss GPU 0 is out of range (0-{ngpu-1})")
+    #     for i in range(0, ngpu):
+    #         vdev.push_back(i)
+    #         vres.push_back(gpu_resources[i])
+    #     self.index = faiss.index_cpu_to_gpu_multiple(
+    #         vres, vdev, self.index, co)
+    #     self.index_on_gpu = True
 
     def batch_search(self, q_reps: np.ndarray, k: int, batch_size: int, quiet: bool=False):
         num_query = q_reps.shape[0]
@@ -36,6 +59,7 @@ class FaissFlatSearcher:
         all_indices = np.concatenate(all_indices, axis=0)
 
         return all_scores, all_indices
+
 
 
 class FaissSearcher(FaissFlatSearcher):

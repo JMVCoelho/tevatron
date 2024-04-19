@@ -22,7 +22,66 @@ def format_passage(text: str, title: str = '', prefix: str = '', add_markers: bo
     else:
         return f'{prefix} {title.strip()} {text.strip()}'.strip()
 
+class PreTrainDataset(Dataset):
+    def __init__(self, data_args: DataArguments, trainer = None):
+        self.data_args = data_args
+        self.train_data = load_dataset(
+            self.data_args.dataset_name,
+            self.data_args.dataset_config,
+            data_files=self.data_args.dataset_path,
+            split=self.data_args.dataset_split,
+            cache_dir=self.data_args.dataset_cache_dir,
+        )
+        if self.data_args.dataset_number_of_shards > 1:
+            self.encode_data = self.encode_data.shard(
+                num_shards=self.data_args.dataset_number_of_shards,
+                index=self.data_args.dataset_shard_index,
+            )
+        self.trainer = trainer
 
+    def __len__(self):
+        return len(self.train_data)
+    
+    def crop(self, data: List[int], ratio_min: float = 0.1, ratio_max: float = 0.5) -> List[int]:
+        ratio = random.uniform(ratio_min, ratio_max)
+        length = int(len(data) * ratio)
+        start = random.randint(0, len(data) - length)
+        end = start + length
+        crop = data[start:end]
+        return crop
+
+    def create_one_example(self, text_encoding: List[int], is_query=False) -> BatchEncoding:
+        text_encoding = self.crop(text_encoding)
+        
+        if text_encoding == []:
+            text_encoding = [0]
+            print("err-encoding-tok")
+
+        max_length = self.data_args.query_max_len if is_query else self.data_args.passage_max_len
+
+        if self.data_args.append_eos_token:
+            max_length -= 1
+
+        item = self.tokenizer.prepare_for_model(
+            text_encoding,
+            truncation='only_first',
+            max_length=max_length,
+            padding=False,
+            return_attention_mask=False,
+            return_token_type_ids=False,
+        )
+
+        return item
+
+    def __getitem__(self, item) -> Tuple[str, List[str]]:
+
+        text = self.train_data[item]['text']
+
+        encoded_query = self.create_one_example(text, is_query=True)
+        encoded_passages = [self.create_one_example(text)]
+
+        return encoded_query, encoded_passages
+    
 class TrainDataset(Dataset):
     def __init__(self, data_args: DataArguments, trainer = None):
         self.data_args = data_args

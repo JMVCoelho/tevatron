@@ -27,7 +27,7 @@ mkdir $EMBEDDING_OUTPUT_DIR/$trained_model_name
 python -m tevatron.retriever.driver.encode \
   --output_dir=temp \
   --model_name_or_path mistralai/Mistral-7B-v0.1 \
-  --lora_name_or_path /data/user_data/jmcoelho/models/$trained_model_name \
+  --lora_name_or_path /data/user_data/jmcoelho/models/fine-tuned/$trained_model_name \
   --lora \
   --query_prefix "Query: " \
   --passage_prefix "Passage: " \

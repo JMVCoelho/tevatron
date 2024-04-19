@@ -29,7 +29,12 @@ class TevatronTrainer(Trainer):
             if state_dict is None:
                 state_dict = self.model.state_dict()
             prefix = 'encoder.'
-            assert all(k.startswith(prefix) for k in state_dict.keys()), list(state_dict.keys())
+            #assert all(k.startswith(prefix) for k in state_dict.keys()), list(state_dict.keys())
+
+            ## HACK
+            ### I removed the assert because i may have prefixes like "lm_head"
+            ### lm_head has same length as encoder, so nothing breaks.... but be careful
+            
             state_dict = {k[len(prefix):]: v for k, v in state_dict.items()}
             if isinstance(self.model.encoder, PeftModel):
                 lora_state_dict = get_peft_model_state_dict(self.model.encoder, state_dict)
@@ -43,7 +48,13 @@ class TevatronTrainer(Trainer):
 
     def compute_loss(self, model, inputs):
         query, passage = inputs
-        return model(query=query, passage=passage).loss
+
+        out = model(query=query, passage=passage)
+
+        # if out.bow_loss is not None:
+        #     self.log({"train/bow_loss": out.bow_loss})
+            
+        return out.loss
 
     def training_step(self, *args):
         return super(TevatronTrainer, self).training_step(*args) / self._dist_loss_scale_factor

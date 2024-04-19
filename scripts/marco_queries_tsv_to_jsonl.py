@@ -12,7 +12,7 @@ def tsv_to_jsonl(input_tsv, output_jsonl):
             json_data = {'query_id': qid, 'query': f"{text}"}
             jsonl_file.write(json.dumps(json_data) + '\n')
 
-input_file = "/data/user_data/jmcoelho/datasets/marco/documents/dev.query.txt"
-output = "/data/user_data/jmcoelho/datasets/marco/documents/dev.query.jsonl"
+input_file = "/data/user_data/jmcoelho/datasets/marco/documents/train.query.filtered.txt"
+output = "/data/user_data/jmcoelho/datasets/marco/documents/train.query.filtered.jsonl"
 
 tsv_to_jsonl(input_file, output)

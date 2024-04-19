@@ -71,6 +71,21 @@ class ModelArguments:
         },
     )
 
+    local: bool = field(
+        default=False,
+        metadata={"help": "set to true if loading custom local model"}
+    )
+
+    matrioshka_reg: bool = field(
+        default=False,
+        metadata={"help": "add matrioshka BoW reconstruction loss"}
+    )
+
+    repetition: bool = field(
+        default=False,
+        metadata={"help": "add repetition behavior."}
+    )
+
 
 @dataclass
 class DataArguments:
@@ -140,6 +155,10 @@ class DataArguments:
 
     append_eos_token: bool = field(
         default=False, metadata={"help": "append eos token to query and passage, this is currently used for repllama"}
+    )
+
+    prepend_bos_token: bool = field(
+        default=False, metadata={"help": "prepend bos token to query and passage, this is currently used for jamba"}
     )
 
     add_markers: bool = field(

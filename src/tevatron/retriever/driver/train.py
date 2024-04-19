@@ -67,6 +67,7 @@ def main():
     if tokenizer.pad_token_id is None:
         tokenizer.pad_token_id = tokenizer.unk_token_id
     tokenizer.padding_side = 'right'
+    #tokenizer.padding_side = 'left'
     
     model = DenseModel.build(
         model_args,
@@ -75,7 +76,7 @@ def main():
     )
 
     train_dataset = TrainDataset(data_args) if data_args.dataset_path is None else TrainDatasetPreprocessed(data_args)
-    collator = TrainCollator(data_args, tokenizer) if data_args.dataset_path is None else TrainCollatorPreprocessed(data_args, tokenizer)
+    collator = TrainCollator(data_args, tokenizer) if data_args.dataset_path is None else TrainCollatorPreprocessed(data_args, tokenizer, landmarks=(model_args.pooling == "landmark"))
     train_dataset.tokenizer = tokenizer
 
     trainer_cls = GCTrainer if training_args.grad_cache else Trainer
