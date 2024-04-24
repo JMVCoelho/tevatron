@@ -47,4 +47,10 @@ class TevatronTrainer(Trainer):
 
     def training_step(self, *args):
         return super(TevatronTrainer, self).training_step(*args) / self._dist_loss_scale_factor
+    
 
+class TevatronDistiller(TevatronTrainer):
+    def compute_loss(self, model, inputs):
+        query, passage, teacher_q_embed, teacher_d_embed = inputs
+        return model(query=query, passage=passage, teacher_q_embed=teacher_q_embed, teacher_d_embed=teacher_d_embed).loss
+    

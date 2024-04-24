@@ -2,6 +2,8 @@ import logging
 import os
 import sys
 
+import pickle 
+
 from transformers import AutoTokenizer
 from transformers import (
     HfArgumentParser,
@@ -10,10 +12,10 @@ from transformers import (
 
 from tevatron.retriever.arguments import ModelArguments, DataArguments, \
     TevatronTrainingArguments as TrainingArguments
-from tevatron.retriever.dataset import TrainDataset, TrainDatasetPreprocessed
-from tevatron.retriever.collator import TrainCollator, TrainCollatorPreprocessed
+from tevatron.retriever.dataset import DistilDataset, TrainDataset, TrainDatasetPreprocessed
+from tevatron.retriever.collator import DistilCollator, TrainCollator, TrainCollatorPreprocessed
 from tevatron.retriever.modeling import DenseModel
-from tevatron.retriever.trainer import TevatronTrainer as Trainer
+from tevatron.retriever.trainer import TevatronDistiller as Trainer
 from tevatron.retriever.gc_trainer import GradCacheTrainer as GCTrainer
 
 logger = logging.getLogger(__name__)
@@ -77,8 +79,23 @@ def main():
         cache_dir=model_args.cache_dir,
     )
 
-    train_dataset = TrainDataset(data_args) if data_args.dataset_path is None else TrainDatasetPreprocessed(data_args)
-    collator = TrainCollator(data_args, tokenizer) if data_args.dataset_path is None else TrainCollatorPreprocessed(data_args, tokenizer)
+    teacher_embeddings = {'query':{}, 'passages':{}}
+
+    for file_name in os.listdir(data_args.embeddings_path):
+        if file_name.startswith("corpus") and file_name.endswith(".pkl"):
+            file_path = os.path.join(data_args.embeddings_path, file_name)
+            with open(file_path, "rb") as f:
+                corpus_data = pickle.load(f)
+                embeddings, ids = corpus_data
+                teacher_embeddings['passages'].update(zip(ids, embeddings))
+
+    with open(f"{data_args.embeddings_path}/query-train.pkl","rb") as f:
+        query_data = pickle.load(f)
+        embeddings, ids = query_data
+        teacher_embeddings['query'].update(zip(ids, embeddings))
+
+    train_dataset = DistilDataset(data_args, embeddings=teacher_embeddings)
+    collator = DistilCollator(data_args, tokenizer)
     train_dataset.tokenizer = tokenizer
 
     trainer_cls = GCTrainer if training_args.grad_cache else Trainer

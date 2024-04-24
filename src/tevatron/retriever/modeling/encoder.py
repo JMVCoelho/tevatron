@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 from typing import Dict, Optional
+import torch.nn.functional as F
+
 
 import torch
 import torch.distributed as dist
@@ -44,9 +46,14 @@ class EncoderModel(nn.Module):
             self.process_rank = dist.get_rank()
             self.world_size = dist.get_world_size()
 
-    def forward(self, query: Dict[str, Tensor] = None, passage: Dict[str, Tensor] = None):
+        self.dt_head = nn.Linear(768, 4096)
+
+        self.distil_method = "embedding" #score
+
+    def forward(self, query: Dict[str, Tensor] = None, passage: Dict[str, Tensor] = None, teacher_q_embed = None, teacher_d_embed = None):
         q_reps = self.encode_query(query) if query else None
         p_reps = self.encode_passage(passage) if passage else None
+
 
         # for inference
         if q_reps is None or p_reps is None:
@@ -56,7 +63,7 @@ class EncoderModel(nn.Module):
             )
 
         # for training
-        if self.training:
+        if self.training and teacher_q_embed is None:
             if self.is_ddp:
                 q_reps = self._dist_gather_tensor(q_reps)
                 p_reps = self._dist_gather_tensor(p_reps)
@@ -70,6 +77,34 @@ class EncoderModel(nn.Module):
             loss = self.compute_loss(scores / self.temperature, target)
             if self.is_ddp:
                 loss = loss * self.world_size  # counter average weight reduction
+        
+
+        if self.training and teacher_q_embed is not None:
+            if self.distil_method == "score":
+                scores = self.compute_similarity(q_reps, p_reps) / self.temperature
+                teacher_scores = self.compute_similarity(teacher_q_embed, teacher_d_embed) / self.temperature
+
+                scores = F.log_softmax(scores, dim=1)
+                teacher_scores = F.softmax(teacher_scores, dim=1)
+
+                loss = F.kl_div(scores, teacher_scores, reduction='batchmean')
+            
+            elif self.distil_method == "embedding":
+                q_reps = self.dt_head(q_reps)
+                p_reps = self.dt_head(p_reps)
+
+                q_reps = F.log_softmax(q_reps, dim=1)
+                p_reps = F.log_softmax(p_reps, dim=1)
+
+                teacher_q_embed = F.softmax(teacher_q_embed, dim=1)
+                teacher_d_embed = F.softmax(teacher_d_embed, dim=1)
+
+                query_loss = F.kl_div(q_reps, teacher_q_embed, reduction='batchmean')
+                passage_loss = F.kl_div(p_reps, teacher_d_embed, reduction='batchmean')
+
+                loss = (query_loss + passage_loss)/2
+                scores = None
+
         # for eval
         else:
             scores = self.compute_similarity(q_reps, p_reps)
@@ -120,7 +155,7 @@ class EncoderModel(nn.Module):
             **hf_kwargs,
     ):  
         try:
-            base_model = cls.TRANSFORMER_CLS.from_pretrained(model_args.model_name_or_path, **hf_kwargs)
+            base_model = cls.TRANSFORMER_CLS.from_pretrained(model_args.model_name_or_path, attn_implementation="flash_attention_2", **hf_kwargs)
         except Exception:
             print("Trying to load from local files with custom state dict")
             state_dict = torch.load(f"{model_args.model_name_or_path}/pytorch_model.bin")
@@ -170,7 +205,7 @@ class EncoderModel(nn.Module):
             lora_name_or_path: str = None,
             **hf_kwargs):
         try:
-            base_model = cls.TRANSFORMER_CLS.from_pretrained(model_name_or_path, **hf_kwargs)
+            base_model = cls.TRANSFORMER_CLS.from_pretrained(model_name_or_path, attn_implementation="flash_attention_2", **hf_kwargs)
         except Exception:
             print("Trying to load from local files with custom state dict")
             state_dict = torch.load(f"{model_name_or_path}/pytorch_model.bin")

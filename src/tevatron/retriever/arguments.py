@@ -153,6 +153,10 @@ class DataArguments:
                     "enable the use of Tensor Cores on NVIDIA hardware with compute capability >= 7.5 (Volta)."
         },
     )
+    
+    embeddings_path: str = field(
+        default='', metadata={"help": "path to embedding corpus"}
+    )
 
 
 @dataclass

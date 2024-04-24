@@ -49,8 +49,11 @@ def main():
         model_args.tokenizer_name if model_args.tokenizer_name else model_args.model_name_or_path,
         cache_dir=model_args.cache_dir
     )
-    if tokenizer.pad_token_id is None:
-        tokenizer.pad_token_id = tokenizer.unk_token_id
+    # if tokenizer.pad_token_id is None:
+    #     tokenizer.pad_token_id = tokenizer.unk_token_id
+
+    tokenizer.pad_token = tokenizer.eos_token
+    
     tokenizer.padding_side = 'right'
     
     model = DenseModel.load(
