@@ -8,14 +8,14 @@
 #SBATCH --mem=50G
 #SBATCH --time=2-00:00:00
 
-export TRANSFORMERS_CACHE=/data/user_data/jmcoelho/hf_cache
+export TRANSFORMERS_CACHE=/data/datasets/hf_cache
 
 eval "$(conda shell.bash hook)"
 conda activate tevatron
 
 module load cuda-11.8
 
-trained_model_name=pythia-160m-marco-docs
+trained_model_name=pythia-160m-marco-docs-bow-pretain-contrastive-pretrain-bs64
 
 shard=$1
 
