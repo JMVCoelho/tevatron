@@ -14,7 +14,7 @@ conda activate tevatron
 
 module load cuda-11.8
 
-trained_model_name=pythia-160m-marco-passage-bow-pretrain-distil-llama-3
+trained_model_name=pythia-160m-marco-passage-bow-pretrain-distil-llama-3/checkpoint-391
 #trained_model_name=pythia-160m-marco-passage-bow-pretrain-32bs-2gpu
 
 EMBEDDING_OUTPUT_DIR=/data/user_data/jmcoelho/embeddings/marco_passage
