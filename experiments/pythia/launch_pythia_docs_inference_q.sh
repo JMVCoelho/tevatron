@@ -8,7 +8,7 @@
 #SBATCH --mem=15G
 #SBATCH --time=2-00:00:00
 
-export TRANSFORMERS_CACHE=/data/user_data/jmcoelho/hf_cache
+export TRANSFORMERS_CACHE=/data/datasets/hf_cache
 
 eval "$(conda shell.bash hook)"
 conda activate tevatron
