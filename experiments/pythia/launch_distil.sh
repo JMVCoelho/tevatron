@@ -3,7 +3,7 @@
 #SBATCH --output=logs/%x-%j.out
 #SBATCH -e logs/%x-%j.err
 #SBATCH --partition=general
-#SBATCH --gres=gpu:6000Ada:1
+#SBATCH --gres=gpu:A6000:1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=300G
 #SBATCH --time=2-00:00:00
@@ -16,7 +16,7 @@ conda activate tevatron
 module load cuda-11.8
 
 teacher_model=llama3-8b-marco-passage-lora
-trained_model_name=pythia-160m-marco-passage-bow-pretrain-distil-llama-3-embed
+trained_model_name=pythia-160m-marco-passage-bow-pretrain-distil-llama-3-score+embed
 base_model=/data/user_data/jmcoelho/models/pre-trained/pythia-160m-1024-marco-docs-bow-hf/
 
 deepspeed --include localhost:0 --master_port 23500 --module tevatron.retriever.driver.distil \
@@ -38,7 +38,7 @@ deepspeed --include localhost:0 --master_port 23500 --module tevatron.retriever.
   --temperature 0.01 \
   --per_device_train_batch_size 256 \
   --train_group_size 16 \
-  --learning_rate 5e-5 \
+  --learning_rate 1e-4 \
   --query_max_len 32 \
   --passage_max_len 156 \
   --num_train_epochs 2 \

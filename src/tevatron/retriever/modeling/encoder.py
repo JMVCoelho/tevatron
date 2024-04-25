@@ -48,7 +48,7 @@ class EncoderModel(nn.Module):
 
         self.dt_head = nn.Linear(768, 4096)
 
-        self.distil_method = "embedding" #score
+        self.distil_method = "both"
 
     def forward(self, query: Dict[str, Tensor] = None, passage: Dict[str, Tensor] = None, teacher_q_embed = None, teacher_d_embed = None):
         q_reps = self.encode_query(query) if query else None
@@ -80,18 +80,24 @@ class EncoderModel(nn.Module):
         
 
         if self.training and teacher_q_embed is not None:
-            if self.distil_method == "score":
-                scores = self.compute_similarity(q_reps, p_reps) / self.temperature
-                teacher_scores = self.compute_similarity(teacher_q_embed, teacher_d_embed) / self.temperature
+            #if self.distil_method == "score":
 
-                scores = F.log_softmax(scores, dim=1)
-                teacher_scores = F.softmax(teacher_scores, dim=1)
+            # Default KL loss between score distributions
+            scores = self.compute_similarity(q_reps, p_reps) / self.temperature
+            teacher_scores = self.compute_similarity(teacher_q_embed, teacher_d_embed) / self.temperature
 
-                loss = F.kl_div(scores, teacher_scores, reduction='batchmean')
-            
-            elif self.distil_method == "embedding":
-                q_reps = self.dt_head(q_reps)
-                p_reps = self.dt_head(p_reps)
+            scores = F.log_softmax(scores, dim=1)
+            teacher_scores = F.softmax(teacher_scores, dim=1)
+
+            loss = F.kl_div(scores, teacher_scores, reduction='batchmean')
+
+            if self.distil_method == "both":
+                # Match embedding dimensions through projection
+                q_reps = self.dt_head(q_reps) / self.temperature
+                p_reps = self.dt_head(p_reps) / self.temperature
+
+                teacher_q_embed = teacher_q_embed / self.temperature
+                teacher_d_embed = teacher_d_embed / self.temperature
 
                 q_reps = F.log_softmax(q_reps, dim=1)
                 p_reps = F.log_softmax(p_reps, dim=1)
@@ -102,8 +108,9 @@ class EncoderModel(nn.Module):
                 query_loss = F.kl_div(q_reps, teacher_q_embed, reduction='batchmean')
                 passage_loss = F.kl_div(p_reps, teacher_d_embed, reduction='batchmean')
 
-                loss = (query_loss + passage_loss)/2
-                scores = None
+                loss_embeddings = (query_loss + passage_loss)/2
+                
+                loss += loss_embeddings
 
         # for eval
         else:

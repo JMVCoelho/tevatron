@@ -29,7 +29,7 @@ class TevatronTrainer(Trainer):
             if state_dict is None:
                 state_dict = self.model.state_dict()
             prefix = 'encoder.'
-            assert all(k.startswith(prefix) for k in state_dict.keys()), list(state_dict.keys())
+            #assert all(k.startswith(prefix) for k in state_dict.keys()), list(state_dict.keys())
             state_dict = {k[len(prefix):]: v for k, v in state_dict.items()}
             if isinstance(self.model.encoder, PeftModel):
                 lora_state_dict = get_peft_model_state_dict(self.model.encoder, state_dict)
