@@ -15,14 +15,14 @@ conda activate tevatron
 
 module load cuda-11.8
 
-trained_model_name=pythia-160m-marco-docs-bow-pretrain-bs64-self-hn1-gradnorm
+trained_model_name=pythia-160m-marco-docs-bow-pretrain-bs64-self-hn1-rand_delete
 model_to_train=/data/user_data/jmcoelho/models/fine-tuned/pythia-160m-marco-docs-bow-pretrain/
 
 deepspeed --include localhost:0,1,2,3 --master_port 26500 --module tevatron.retriever.driver.train \
   --deepspeed deepspeed/ds_zero3_config.json \
   --output_dir /data/user_data/jmcoelho/models/fine-tuned/$trained_model_name \
   --model_name_or_path $model_to_train\
-  --dataset_path "/data/user_data/jmcoelho/datasets/marco/documents/processed_data/pythia-160m-marco-docs-bow-pretrain/gradnorm/train.jsonl" \
+  --dataset_path "/data/user_data/jmcoelho/datasets/marco/documents/processed_data/pythia-160m-marco-docs-bow-pretrain/random/train.jsonl" \
   --dataset_cache_dir /data/datasets/hf_cache \
   --cache_dir /data/datasets/hf_cache \
   --save_steps 1000 \

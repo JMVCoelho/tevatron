@@ -8,14 +8,14 @@
 #SBATCH --mem=50G
 #SBATCH --time=2-00:00:00
 
-export TRANSFORMERS_CACHE=/data/user_data/jmcoelho/hf_cache
+export TRANSFORMERS_CACHE=/data/datasets/hf_cache
 
 eval "$(conda shell.bash hook)"
 conda activate tevatron
 
 module load cuda-11.8
 
-trained_model_name=pythia-160m-marco-docs
+trained_model_name=pythia-160m-marco-docs-bow-pretrain-bs64-self-hn1-gradnorm
 
 shard=$1
 
@@ -27,7 +27,8 @@ mkdir -p $EMBEDDING_OUTPUT_DIR/$trained_model_name
 python -m tevatron.retriever.driver.encode \
   --output_dir=temp \
   --model_name_or_path /data/user_data/jmcoelho/models/fine-tuned/$trained_model_name/ \
-  --dataset_cache_dir /data/user_data/jmcoelho/hf_cache \
+  --dataset_cache_dir /data/datasets/hf_cache \
+  --cache_dir /data/datasets/hf_cache \
   --query_prefix "" \
   --passage_prefix "" \
   --bf16 \

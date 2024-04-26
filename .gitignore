@@ -6,3 +6,4 @@ wandb
 logs
 qrels
 GradCache
+hard_negs.txt
