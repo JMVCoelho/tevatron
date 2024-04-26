@@ -37,3 +37,4 @@ qrels=./qrels/marco.docs.dev.qrel.tsv
 trec_run=$EMBEDDING_OUTPUT_DIR/$trained_model_name/run.dev.trec
 
 python scripts/evaluate.py $qrels $trec_run
+python scripts/evaluate.py -m mrr_cut.100 $qrels $trec_run

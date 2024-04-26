@@ -27,7 +27,7 @@ mkdir -p $EMBEDDING_OUTPUT_DIR/$trained_model_name
 python -m tevatron.retriever.driver.encode \
   --output_dir=temp \
   --model_name_or_path /data/user_data/jmcoelho/models/fine-tuned/$trained_model_name/ \
-  --dataset_cache_dir /data/user_data/jmcoelho/hf_cache \
+  --dataset_cache_dir /data/datasets/hf_cache \
   --query_prefix "" \
   --passage_prefix "" \
   --bf16 \
