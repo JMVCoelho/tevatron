@@ -14,67 +14,67 @@ conda activate tevatron
 
 module load cuda-11.8
 
-trained_model_name=llama3-8b-marco-passage-lora
+trained_model_name=llama3-8b-marco-passage-lora-128bs-2
 
 EMBEDDING_OUTPUT_DIR=/data/user_data/jmcoelho/embeddings/marco_passage
 mkdir $EMBEDDING_OUTPUT_DIR/$trained_model_name
 
-# echo "DEV"
-# echo "######################################"
-# set -f && python -m tevatron.retriever.driver.search \
-#     --query_reps $EMBEDDING_OUTPUT_DIR/$trained_model_name/query-dev.pkl \
-#     --passage_reps $EMBEDDING_OUTPUT_DIR/$trained_model_name/corpus*.pkl \
-#     --depth 1000 \
-#     --batch_size 0 \
-#     --save_text \
-#     --save_ranking_to $EMBEDDING_OUTPUT_DIR/$trained_model_name/run.dev.txt
+echo "DEV"
+echo "######################################"
+set -f && python -m tevatron.retriever.driver.search \
+    --query_reps $EMBEDDING_OUTPUT_DIR/$trained_model_name/query-dev.pkl \
+    --passage_reps $EMBEDDING_OUTPUT_DIR/$trained_model_name/corpus*.pkl \
+    --depth 1000 \
+    --batch_size 0 \
+    --save_text \
+    --save_ranking_to $EMBEDDING_OUTPUT_DIR/$trained_model_name/run.dev.txt
 
 
-# python src/tevatron/utils/format/convert_result_to_trec.py \
-#     --input $EMBEDDING_OUTPUT_DIR/$trained_model_name/run.dev.txt \
-#     --output $EMBEDDING_OUTPUT_DIR/$trained_model_name/run.dev.trec
+python src/tevatron/utils/format/convert_result_to_trec.py \
+    --input $EMBEDDING_OUTPUT_DIR/$trained_model_name/run.dev.txt \
+    --output $EMBEDDING_OUTPUT_DIR/$trained_model_name/run.dev.trec
 
 
-# qrels=./qrels/marco.passage.dev.small.qrel.tsv
-# trec_run=$EMBEDDING_OUTPUT_DIR/$trained_model_name/run.dev.trec
+qrels=./qrels/marco.passage.dev.small.qrel.tsv
+trec_run=$EMBEDDING_OUTPUT_DIR/$trained_model_name/run.dev.trec
 
-# python scripts/evaluate.py $qrels $trec_run > $EMBEDDING_OUTPUT_DIR/$trained_model_name/results.dev.trec
-# python scripts/evaluate.py -m mrr_cut.10 $qrels $trec_run
-# python scripts/evaluate.py -m recall_cut.1000 $qrels $trec_run
-
-
-# echo "DL19"
-# echo "######################################"
-# set -f && python -m tevatron.retriever.driver.search \
-#     --query_reps $EMBEDDING_OUTPUT_DIR/$trained_model_name/query-dl19.pkl \
-#     --passage_reps $EMBEDDING_OUTPUT_DIR/$trained_model_name/corpus*.pkl \
-#     --depth 1000 \
-#     --batch_size 0 \
-#     --save_text \
-#     --save_ranking_to $EMBEDDING_OUTPUT_DIR/$trained_model_name/run.dl19.txt
+python scripts/evaluate.py $qrels $trec_run > $EMBEDDING_OUTPUT_DIR/$trained_model_name/results.dev.trec
+python scripts/evaluate.py -m mrr_cut.10 $qrels $trec_run
+python scripts/evaluate.py -m recall.1000 $qrels $trec_run
 
 
-# python src/tevatron/utils/format/convert_result_to_trec.py \
-#     --input $EMBEDDING_OUTPUT_DIR/$trained_model_name/run.dl19.txt \
-#     --output $EMBEDDING_OUTPUT_DIR/$trained_model_name/run.dl19.trec
+echo "DL19"
+echo "######################################"
+set -f && python -m tevatron.retriever.driver.search \
+    --query_reps $EMBEDDING_OUTPUT_DIR/$trained_model_name/query-dl19.pkl \
+    --passage_reps $EMBEDDING_OUTPUT_DIR/$trained_model_name/corpus*.pkl \
+    --depth 1000 \
+    --batch_size 0 \
+    --save_text \
+    --save_ranking_to $EMBEDDING_OUTPUT_DIR/$trained_model_name/run.dl19.txt
 
 
-# qrels=./qrels/trecdl19.qrel.tsv
-# trec_run=$EMBEDDING_OUTPUT_DIR/$trained_model_name/run.dl19.trec
-
-# python scripts/evaluate.py $qrels $trec_run > $EMBEDDING_OUTPUT_DIR/$trained_model_name/results.dl19.trec
-# python scripts/evaluate.py -m ndcg_cut.10 $qrels $trec_run
+python src/tevatron/utils/format/convert_result_to_trec.py \
+    --input $EMBEDDING_OUTPUT_DIR/$trained_model_name/run.dl19.txt \
+    --output $EMBEDDING_OUTPUT_DIR/$trained_model_name/run.dl19.trec
 
 
-# echo "DL20"
-# echo "######################################"
-# set -f && python -m tevatron.retriever.driver.search \
-#     --query_reps $EMBEDDING_OUTPUT_DIR/$trained_model_name/query-dl20.pkl \
-#     --passage_reps $EMBEDDING_OUTPUT_DIR/$trained_model_name/corpus*.pkl \
-#     --depth 1000 \
-#     --batch_size 0 \
-#     --save_text \
-#     --save_ranking_to $EMBEDDING_OUTPUT_DIR/$trained_model_name/run.dl20.txt
+qrels=./qrels/trecdl19.qrel.tsv
+trec_run=$EMBEDDING_OUTPUT_DIR/$trained_model_name/run.dl19.trec
+
+python scripts/evaluate.py $qrels $trec_run > $EMBEDDING_OUTPUT_DIR/$trained_model_name/results.dl19.trec
+python scripts/evaluate.py -m ndcg_cut.10 $qrels $trec_run
+
+
+echo "DL20"
+echo "######################################"
+set -f && python -m tevatron.retriever.driver.search \
+    --query_reps $EMBEDDING_OUTPUT_DIR/$trained_model_name/query-dl20.pkl \
+    --passage_reps $EMBEDDING_OUTPUT_DIR/$trained_model_name/corpus*.pkl \
+    --depth 1000 \
+    --batch_size 0 \
+    --save_text \
+    --save_ranking_to $EMBEDDING_OUTPUT_DIR/$trained_model_name/run.dl20.txt
 
 
 python src/tevatron/utils/format/convert_result_to_trec.py \

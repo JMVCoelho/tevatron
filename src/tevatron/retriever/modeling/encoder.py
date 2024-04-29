@@ -46,9 +46,8 @@ class EncoderModel(nn.Module):
             self.process_rank = dist.get_rank()
             self.world_size = dist.get_world_size()
 
-        self.dt_head = nn.Linear(768, 4096)
-
-        self.distil_method = "both"
+        #self.dt_head = nn.Linear(768, 4096)
+        #self.distil_method = "both"
 
     def forward(self, query: Dict[str, Tensor] = None, passage: Dict[str, Tensor] = None, teacher_q_embed = None, teacher_d_embed = None):
         q_reps = self.encode_query(query) if query else None
@@ -64,6 +63,7 @@ class EncoderModel(nn.Module):
 
         # for training
         if self.training and teacher_q_embed is None:
+
             if self.is_ddp:
                 q_reps = self._dist_gather_tensor(q_reps)
                 p_reps = self._dist_gather_tensor(p_reps)
@@ -76,10 +76,10 @@ class EncoderModel(nn.Module):
 
             loss = self.compute_loss(scores / self.temperature, target)
             if self.is_ddp:
-                loss = loss * self.world_size  # counter average weight reduction
-        
+                loss = loss * self.world_size  # counter average weight reduction        
 
-        if self.training and teacher_q_embed is not None:
+        elif self.training and teacher_q_embed is not None:
+            print("SHOULD NOT BE PRINTING THIS RN")
             #if self.distil_method == "score":
 
             # Default KL loss between score distributions

@@ -3,9 +3,9 @@
 #SBATCH --output=logs/%x-%j.out
 #SBATCH -e logs/%x-%j.err
 #SBATCH --partition=general
-#SBATCH --gres=gpu:A6000:1
-#SBATCH --cpus-per-task=4
-#SBATCH --mem=200G
+#SBATCH --gres=gpu:6000Ada:1
+#SBATCH --cpus-per-task=1
+#SBATCH --mem=75G
 #SBATCH --time=2-00:00:00
 
 export TRANSFORMERS_CACHE=/data/datasets/hf_cache
@@ -15,7 +15,7 @@ conda activate tevatron
 
 module load cuda-11.8
 
-trained_model_name=llama3-8b-marco-passage-lora
+trained_model_name=llama3-8b-marco-passage-lora-128bs-2
 
 shard=$1
 
