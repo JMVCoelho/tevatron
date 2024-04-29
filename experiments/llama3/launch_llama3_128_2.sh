@@ -3,7 +3,7 @@
 #SBATCH --output=logs/%x-%j.out
 #SBATCH -e logs/%x-%j.err
 #SBATCH --partition=general
-#SBATCH --gres=gpu:A100_80GB:4
+#SBATCH --gres=gpu:A6000:8
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=200G
 #SBATCH --time=2-00:00:00
@@ -15,16 +15,19 @@ conda activate tevatron
 
 module load cuda-11.8
 
+# q_proj,v_proj,o_proj,down_proj,up_proj,gate_proj
+# https://github.com/texttron/tevatron/blob/main/examples/repllama/repllama.py#L87
+
 trained_model_name=llama3-8b-marco-passage-lora-128bs-2
 
-deepspeed --include localhost:0,1,2,3 --master_port 26500 --module tevatron.retriever.driver.train \
+deepspeed --include localhost:0,1,2,3,4,5,6,7 --master_port 26500 --module tevatron.retriever.driver.train \
   --deepspeed deepspeed/ds_zero3_config.json \
   --output_dir /data/user_data/jmcoelho/models/$trained_model_name \
   --model_name_or_path meta-llama/Meta-Llama-3-8B \
   --dataset_cache_dir /data/datasets/hf_cache \
   --cache_dir /data/datasets/hf_cache \
   --lora \
-  --lora_target_modules q_proj,k_proj,v_proj,o_proj,down_proj,up_proj,gate_proj \
+  --lora_target_modules q_proj,v_proj,o_proj,down_proj,up_proj,gate_proj \
   --save_steps 10000 \
   --dataset_name Tevatron/msmarco-passage \
   --query_prefix "Query: " \
@@ -34,7 +37,7 @@ deepspeed --include localhost:0,1,2,3 --master_port 26500 --module tevatron.retr
   --append_eos_token \
   --normalize \
   --temperature 0.01 \
-  --per_device_train_batch_size 32 \
+  --per_device_train_batch_size 16 \
   --gradient_checkpointing \
   --train_group_size 16 \
   --learning_rate 1e-4 \
