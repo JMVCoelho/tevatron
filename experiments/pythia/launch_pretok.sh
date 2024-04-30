@@ -21,7 +21,7 @@ train_qrels=$data_path/qrels.train.tsv
 corpus=$data_path/corpus_firstp_2048.tsv
 train_queries=$data_path/train.query.filtered.txt
 
-initial_data_save_folder=$data_path/$trained_model_name/gradnorm
+initial_data_save_folder=$data_path/processed_data/$trained_model_name/gradnorm_cluster
 
 mkdir -p $initial_data_save_folder
 
