@@ -7,3 +7,5 @@ logs
 qrels
 GradCache
 hard_negs.txt
+hardnegs_indi.txt
+hardnegs_less.txt

@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=pythia_dr_inference
+#SBATCH --job-name=hn_sampling
 #SBATCH --output=logs/%x-%j.out
 #SBATCH -e logs/%x-%j.err
 #SBATCH --partition=general
