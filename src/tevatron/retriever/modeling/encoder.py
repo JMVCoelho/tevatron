@@ -31,6 +31,7 @@ class EncoderModel(nn.Module):
                  pooling: str = 'cls',
                  normalize: bool = False,
                  temperature: float = 1.0,
+                 loss: str = 'contrastive',
                  ):
         super().__init__()
         self.config = encoder.config
@@ -38,7 +39,10 @@ class EncoderModel(nn.Module):
         self.pooling = pooling
         self.normalize = normalize
         self.temperature = temperature
+        self.loss = loss
+
         self.cross_entropy = nn.CrossEntropyLoss(reduction='mean')
+
         self.is_ddp = dist.is_initialized()
         if self.is_ddp:
             self.process_rank = dist.get_rank()
@@ -91,7 +95,41 @@ class EncoderModel(nn.Module):
         return torch.matmul(q_reps, p_reps.transpose(0, 1))
 
     def compute_loss(self, scores, target):
-        return self.cross_entropy(scores, target)
+
+        if self.loss == "contrastive":
+            return self.cross_entropy(scores, target)
+        
+        elif self.loss == "hinge":
+
+            margin = torch.tensor(0.1, device=scores.device)
+
+            hinge_losses = []
+
+            for s, t in zip(scores, target): # single query. s is [n_docs] (scores), t is the index of the target.
+                negatives = torch.cat((s[:t], s[t+1:])) #all but index t
+
+                semi_hard_negatives_mask = (s[t] - margin < negatives) 
+                semi_hard_negatives = torch.masked_select(negatives, semi_hard_negatives_mask)
+
+                if semi_hard_negatives.numel() == 0:
+                    # tricky...... loss will be 0. ignore query.
+                    continue
+                    #semi_hard_negatives = negatives
+
+                positives = s[t].expand_as(semi_hard_negatives) #just index t
+
+                hinge_loss = torch.mean(torch.max(torch.tensor(0, device=scores.device), margin - positives + semi_hard_negatives))
+                hinge_losses.append(hinge_loss)
+            
+            if hinge_losses == []:
+                return 0
+            
+            hinge_losses = torch.stack(hinge_losses)
+            return torch.mean(hinge_losses)
+        
+        else:
+            raise ValueError(f"loss not implemented: {self.loss}. Available: contrastive, hinge.")
+        
     
     def gradient_checkpointing_enable(self, **kwargs):
         try:
@@ -158,7 +196,8 @@ class EncoderModel(nn.Module):
                 encoder=base_model,
                 pooling=model_args.pooling,
                 normalize=model_args.normalize,
-                temperature=model_args.temperature
+                temperature=model_args.temperature,
+                loss = train_args.loss
             )
         return model
 
