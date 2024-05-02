@@ -156,6 +156,67 @@ class TrainDatasetPreprocessed(Dataset):
 
         return encoded_query, encoded_passages
 
+class ValidDatasetPreprocessed(Dataset):
+    def __init__(self, data_args: DataArguments, trainer = None):
+        self.data_args = data_args
+        self.train_data = load_dataset(
+            self.data_args.dataset_name,
+            self.data_args.dataset_config,
+            data_files=self.data_args.dataset_path,
+            split=self.data_args.dataset_split,
+            cache_dir=self.data_args.dataset_cache_dir,
+        )
+        if self.data_args.dataset_number_of_shards > 1:
+            self.encode_data = self.encode_data.shard(
+                num_shards=self.data_args.dataset_number_of_shards,
+                index=self.data_args.dataset_shard_index,
+            )
+
+    def create_one_example(self, text_encoding: List[int], is_query=False):
+        max_length = self.data_args.query_max_len if is_query else self.data_args.passage_max_len
+
+        if self.data_args.append_eos_token:
+            max_length -= 1
+
+        item = self.tokenizer.prepare_for_model(
+            text_encoding,
+            truncation='only_first',
+            max_length=max_length,
+            padding=False,
+            return_attention_mask=False,
+            return_token_type_ids=False,
+        )
+        return item
+
+    def __len__(self):
+        return len(self.train_data)
+
+    def __getitem__(self, item) -> Tuple[BatchEncoding, List[BatchEncoding]]:
+        group = self.train_data[item]
+
+
+        qry = group['query']
+        encoded_query = self.create_one_example(qry, is_query=True)
+
+        encoded_passages = []
+        group_positives = group['positives']
+        group_negatives = group['negatives']
+
+        pos_psg = group_positives[0]
+        
+        negative_size = self.data_args.train_group_size - 1
+        if len(group_negatives) < negative_size:
+            negs = random.choices(group_negatives, k=negative_size)
+        elif self.data_args.train_group_size == 1:
+            negs = []
+        else:
+            negs = group_negatives[:negative_size]
+       
+        for neg_psg in negs:
+            encoded_passages.append(self.create_one_example(neg_psg))
+
+        return encoded_query, encoded_passages
+    
 class EncodeDataset(Dataset):
 
     def __init__(self, data_args: DataArguments):

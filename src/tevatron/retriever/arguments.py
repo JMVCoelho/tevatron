@@ -154,10 +154,44 @@ class DataArguments:
         },
     )
 
+    # hardnegative sampling
+
+    save_gradient_path: str = field(
+        default='', metadata={"help": "path to save the gradient of validation set"}
+    )
+
+    method: str = field(
+        default='random', metadata={"help": "method for hn sampling. random, indi, less"}
+    )
+
+    train_run_path: str = field(default="", metadata={"help": "the run from which negatives will be sampled"}
+    )
+
+    train_qrels: str = field(default="", metadata={"help": "train qrels to identify the positive for each query"}
+    )
+
+    embedding_path: Optional[str] = field(
+        default='', metadata={"help": "path for embeddings, for methods that need so."}
+    )
+
+    number_of_negatives: int = field(
+        default=9, metadata={"help": "number of negatives to sample for each query."}
+    )
+
+    negatives_out_file: str = field(
+        default='', metadata={"help": "file to save hns."}
+    )
+
+    validation_set: str = field(
+        default='', metadata={"help": "validation set for LESS sampling."}
+    )
+
 
 @dataclass
 class TevatronTrainingArguments(TrainingArguments):
     warmup_ratio: float = field(default=0.1)
+
+    loss: str = field(default="contrastive", metadata={"help": "loss function. contrastive or hinge."})
 
     grad_cache: bool = field(default=False, metadata={"help": "Use gradient cache update"})
     gc_q_chunk_size: int = field(default=4)
