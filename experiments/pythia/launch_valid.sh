@@ -15,7 +15,7 @@ conda activate tevatron
 
 module load cuda-11.8
 
-model_name=pythia-160m-marco-docs-bow-pretrain
+model_name=pythia-160m-marco-docs-bow-pretrain-bs64-self-hn1-random-normal-sample
 model_to_valid=/data/user_data/jmcoelho/models/fine-tuned/$model_name
 save_grad=/data/user_data/jmcoelho/embeddings/marco_docs/$model_name
 

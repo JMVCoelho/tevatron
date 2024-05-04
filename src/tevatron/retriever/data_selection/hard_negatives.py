@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from tqdm import tqdm
 from sklearn.cluster import KMeans
 from contextlib import nullcontext
+
 import numpy as np
 import torch
 import random
@@ -92,7 +93,6 @@ class HardNegatives(ABC):
     
     def sample_hard_negatives(self, n, outpath):
         logger.info(f"Sampling started.")
-        k = 0
         with open(outpath, 'w') as h:
             for query in tqdm(self.qid2negs):
                 
@@ -100,11 +100,31 @@ class HardNegatives(ABC):
                 
                 line_to_write = f"{query}\t{','.join(chosen_negatives)}\n"
                 h.write(line_to_write)
-                k+=1
-                if k==20:
-                    exit()
 
-    
+
+class SimANSHardNegatives(HardNegatives):
+
+    def set_seed(self, seed):
+        random.seed(seed)
+
+    def load_run(self, path):
+        logger.info(f"Loading run: {path}")
+        self.qid2negs = {}
+
+        with open(path, 'r') as h:
+
+            for line in h:
+                qid, did, score = line.strip().split()
+
+                if qid not in self.qid2negs:
+                    self.qid2negs[qid] = []
+
+                if did not in self.qid2pos[qid]:
+                    self.qid2negs[qid].append((did, score)) 
+
+    def choose_negatives(self, query: int, n: int) -> list[str]:
+        possible_negatives = self.qid2negs[query]
+        return random.sample(possible_negatives, n)
 
 
 class RandomHardNegatives(HardNegatives):
@@ -115,7 +135,6 @@ class RandomHardNegatives(HardNegatives):
     def choose_negatives(self, query: int, n: int) -> list[str]:
         possible_negatives = self.qid2negs[query]
         return random.sample(possible_negatives, n)
-
 
 class InDiHardNegatives(HardNegatives):
     # k means gradient vectors, pick metoids.
@@ -313,8 +332,6 @@ class LESSHardNegatives(HardNegatives):
             dot_prods.append(np.dot(grad, self.validation_gradient))
         
         _, top_indices = torch.topk(torch.tensor(dot_prods), k=n)
-
-        print(top_indices)
 
         chosen_negatives = []
         for index in top_indices.tolist():

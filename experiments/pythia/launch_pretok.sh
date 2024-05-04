@@ -21,13 +21,13 @@ train_qrels=$data_path/qrels.train.tsv
 corpus=$data_path/corpus_firstp_2048.tsv
 train_queries=$data_path/train.query.filtered.txt
 
-initial_data_save_folder=$data_path/processed_data/$trained_model_name/gradnorm_cluster
+initial_data_save_folder=$data_path/processed_data/$trained_model_name/random_normal_sample
 
 mkdir -p $initial_data_save_folder
 
 python scripts/pretokenize.py \
    --tokenizer_name /data/user_data/jmcoelho/models/fine-tuned/$trained_model_name \
-   --negative_file hard_negs.txt  \
+   --negative_file /data/user_data/jmcoelho/embeddings/marco_docs/pythia-160m-marco-docs-bow-pretrain/random_train_run_splits/random/hardnegs_random.random.txt \
    --qrels $train_qrels  \
    --queries $train_queries  \
    --collection $corpus \

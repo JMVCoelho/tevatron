@@ -104,6 +104,8 @@ def main():
 
     total_gradients = []
     dataloader = DataLoader(valid_dataset, batch_size=BS, collate_fn=collator)
+
+    losses = []
     with torch.cuda.amp.autocast(dtype=dtype) if dtype is not None else nullcontext():
         for batch in tqdm(dataloader):
 
@@ -113,6 +115,8 @@ def main():
             d = {k:v.to("cuda") for k, v in d.items()}
 
             loss = model(q, d).loss
+
+            losses.append(loss)
 
             loss.backward()
 
@@ -125,7 +129,8 @@ def main():
             total_gradients.append(gradient_vector)
             model.zero_grad()
 
-            
+    print(sum(losses)/len(losses))
+    exit()      
     average_gradient = np.mean(total_gradients, axis=0)
 
     norm = np.linalg.norm(average_gradient)

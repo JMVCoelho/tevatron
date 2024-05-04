@@ -15,7 +15,7 @@ conda activate tevatron
 
 module load cuda-11.8
 
-trained_model_name=pythia-160m-marco-docs-bow-pretrain-bs64-hinge-m10-sh
+trained_model_name=pythia-160m-marco-docs-bow-pretrain-bs64-self-hn1-less-normal-sample
 
 shard=$1
 

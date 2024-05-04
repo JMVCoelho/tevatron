@@ -28,10 +28,13 @@ def main():
     if data_args.method == "random":
         sampler = RandomHardNegatives(qrels_path=data_args.train_qrels, 
                                       run_path=data_args.train_run_path)
+        sampler.set_seed(training_args.seed)
+
     elif data_args.method == "indi":
         sampler = InDiHardNegatives(qrels_path=data_args.train_qrels, 
                                     run_path=data_args.train_run_path,
                                     embeddings_path=data_args.embedding_path)
+        
     elif data_args.method == "less":
         sampler = LESSHardNegatives(qrels_path=data_args.train_qrels, 
                                     run_path=data_args.train_run_path,
