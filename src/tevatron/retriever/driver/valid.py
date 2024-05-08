@@ -107,6 +107,7 @@ def main():
 
     losses = []
     with torch.cuda.amp.autocast(dtype=dtype) if dtype is not None else nullcontext():
+        n_grad = 0
         for batch in tqdm(dataloader):
 
             q, d = batch
@@ -126,19 +127,14 @@ def main():
                     gradients.append(param.grad.detach().view(-1))
             
             gradient_vector = torch.cat(gradients).cpu().numpy()
+            with open(f"{data_args.save_gradient_path}/validation_grad_{n_grad}.pkl", 'wb') as h:
+                pickle.dump(gradient_vector, h, protocol=pickle.HIGHEST_PROTOCOL)
             total_gradients.append(gradient_vector)
             model.zero_grad()
+            n_grad += 1
 
     print(sum(losses)/len(losses))
-    exit()      
-    average_gradient = np.mean(total_gradients, axis=0)
 
-    norm = np.linalg.norm(average_gradient)
-
-    print("Norm of the average gradient vector:", norm)
-
-    with open(f"{data_args.save_gradient_path}/validation_grad_bs{BS}.pkl", 'wb') as h:
-        pickle.dump(average_gradient, h, protocol=pickle.HIGHEST_PROTOCOL)
 
 if __name__ == "__main__":
     main()

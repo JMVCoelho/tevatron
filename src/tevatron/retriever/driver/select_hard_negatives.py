@@ -1,7 +1,7 @@
 import logging
 import os
 import sys
-from tevatron.retriever.data_selection import RandomHardNegatives, InDiHardNegatives, LESSHardNegatives
+from tevatron.retriever.data_selection import RandomHardNegatives, InDiHardNegatives, LESSHardNegatives, LESSHardNegativesOpacus
 
 from transformers import (
     HfArgumentParser,
@@ -36,7 +36,7 @@ def main():
                                     embeddings_path=data_args.embedding_path)
         
     elif data_args.method == "less":
-        sampler = LESSHardNegatives(qrels_path=data_args.train_qrels, 
+        sampler = LESSHardNegativesOpacus(qrels_path=data_args.train_qrels, 
                                     run_path=data_args.train_run_path,
                                     embeddings_path=data_args.embedding_path,
                                     model_args=model_args,

@@ -55,7 +55,6 @@ class DenseModelLESS(EncoderModel):
             
             negatives = p_reps[1:, :]
             positives = p_reps[0, :].expand_as(negatives)
-
             
             interleaved = torch.cat((positives.unsqueeze(1), negatives.unsqueeze(1)), dim=1)
             interleaved = interleaved.view(-1, negatives.size(1))
@@ -66,8 +65,6 @@ class DenseModelLESS(EncoderModel):
             target = torch.zeros(scores.size(0), dtype=torch.long, device=scores.device)
 
             loss = F.cross_entropy(scores, target, reduction='none')
-
-            #loss = torch.split(loss, 1)
 
         # for eval
         else:

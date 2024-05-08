@@ -1,1 +1,1 @@
-from .hard_negatives import RandomHardNegatives, InDiHardNegatives, LESSHardNegatives
+from .hard_negatives import RandomHardNegatives, InDiHardNegatives, LESSHardNegatives, LESSHardNegativesOpacus
