@@ -35,7 +35,7 @@ class DenseModelLESS(EncoderModel):
             reps = torch.nn.functional.normalize(reps, p=2, dim=-1)
         return reps
     
-    def forward(self, query: Dict[str, Tensor] = None, passage: Dict[str, Tensor] = None):
+    def forward(self, query: Dict[str, Tensor] = None, passage: Dict[str, Tensor] = None, per_sample=True):
         q_reps = self.encode_query(query) if query else None
         p_reps = self.encode_passage(passage) if passage else None
 
@@ -52,19 +52,29 @@ class DenseModelLESS(EncoderModel):
                 q_reps = self._dist_gather_tensor(q_reps)
                 p_reps = self._dist_gather_tensor(p_reps)
 
+            if per_sample:    
+                negatives = p_reps[1:, :]
+                positives = p_reps[0, :].expand_as(negatives)
+                
+                interleaved = torch.cat((positives.unsqueeze(1), negatives.unsqueeze(1)), dim=1)
+                interleaved = interleaved.view(-1, negatives.size(1))
+
+                scores = self.compute_similarity(q_reps, interleaved)
+                scores = scores.view(scores.size(1)//2, -1)
+
+                target = torch.zeros(scores.size(0), dtype=torch.long, device=scores.device)
+
+                loss = F.cross_entropy(scores, target, reduction='none')
             
-            negatives = p_reps[1:, :]
-            positives = p_reps[0, :].expand_as(negatives)
-            
-            interleaved = torch.cat((positives.unsqueeze(1), negatives.unsqueeze(1)), dim=1)
-            interleaved = interleaved.view(-1, negatives.size(1))
+            else:
+                print("correct")
+                scores = self.compute_similarity(q_reps, p_reps)
+                scores = scores.view(q_reps.size(0), -1)
 
-            scores = self.compute_similarity(q_reps, interleaved)
-            scores = scores.view(scores.size(1)//2, -1)
+                target = torch.arange(scores.size(0), device=scores.device, dtype=torch.long)
+                target = target * (p_reps.size(0) // q_reps.size(0))
 
-            target = torch.zeros(scores.size(0), dtype=torch.long, device=scores.device)
-
-            loss = F.cross_entropy(scores, target, reduction='none')
+                loss = F.cross_entropy(scores / self.temperature, target, reduction='mean')
 
         # for eval
         else:

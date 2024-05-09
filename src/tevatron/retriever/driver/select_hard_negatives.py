@@ -1,7 +1,7 @@
 import logging
 import os
 import sys
-from tevatron.retriever.data_selection import RandomHardNegatives, InDiHardNegatives, LESSHardNegatives, LESSHardNegativesOpacus
+from tevatron.retriever.data_selection import RandomHardNegatives, InDiHardNegatives, LESSHardNegativesOpacus, MetaHardNegatives
 
 from transformers import (
     HfArgumentParser,
@@ -42,6 +42,17 @@ def main():
                                     model_args=model_args,
                                     data_args=data_args,
                                     training_args=training_args)
+        sampler.set_seed(training_args.seed)
+
+    elif data_args.method == "meta":
+        sampler = MetaHardNegatives(qrels_path=data_args.train_qrels, 
+                                    run_path=data_args.train_run_path,
+                                    embeddings_path=data_args.embedding_path,
+                                    model_args=model_args,
+                                    data_args=data_args,
+                                    training_args=training_args)
+        sampler.set_seed(training_args.seed)
+        
     else:
         raise ValueError(f"Not implemented sampler: {data_args.method}")
     

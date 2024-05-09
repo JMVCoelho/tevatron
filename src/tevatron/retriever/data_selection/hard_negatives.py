@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 from tqdm import tqdm
 from sklearn.cluster import KMeans
 from contextlib import nullcontext
+import math
+import json
 
 from opacus.grad_sample import GradSampleModule
 
@@ -11,6 +13,8 @@ import random
 import glob
 import pickle
 import os
+from torch import nn, optim
+
 
 from tevatron.retriever.dataset import TrainDatasetPreprocessed
 from tevatron.retriever.collator import TrainCollatorPreprocessed
@@ -379,6 +383,9 @@ class LESSHardNegativesOpacus(HardNegatives):
         
         self.model = GradSampleModule(self.model)
         self.model.train() #hmmmm
+
+    def set_seed(self, seed):
+        random.seed(seed)
         
     def parse_corpus(self):
         logger.info(f"Loading corpus text")
@@ -474,17 +481,16 @@ class LESSHardNegativesOpacus(HardNegatives):
                     else:
                         rolling_dot_prods += current_dot
         
-        _, top_indices = torch.topk(rolling_dot_prods, k=9)
-        self.model.zero_grad()          
+        self.model.zero_grad() 
 
-        return top_indices
+        return rolling_dot_prods
     
     def choose_negatives(self, query: int, n: int) -> list[str]:
         positive_id = self.qid2pos[query]
         negative_ids = self.qid2negs[query]
 
         positive_text = self.did2text[positive_id]
-        negative_texts = [self.did2text[did] for did in negative_ids][:50]
+        negative_texts = [self.did2text[did] for did in negative_ids]
         query_text = self.qid2text[query]
 
         queries = [query_text]
@@ -494,17 +500,272 @@ class LESSHardNegativesOpacus(HardNegatives):
 
         q, d = self.tokenize(queries, documents)
 
-        top_indices = self.get_grad(q, d, random.choice(self.validation_gradients))
+        dot_prods = self.get_grad(q, d, random.choice(self.validation_gradients))
 
-        print(top_indices)
-        exit()
+        _, top_indices = torch.topk(dot_prods, k=n)
+        probabilities = torch.nn.functional.softmax(dot_prods, dim=0)
 
-        chosen_negatives = []
+        chosen_negatives_topk = []
 
         for index in top_indices.tolist():
             negative_id = negative_ids[index]
-            chosen_negatives.append(negative_id)
+            chosen_negatives_topk.append(negative_id)
+
+        chosen_negatives_sample = random.choices(negative_ids, weights=probabilities, k=n)
+
+        return [chosen_negatives_sample, chosen_negatives_topk]
+    
+    def sample_hard_negatives(self, n, outpath):
+        logger.info(f"Sampling started.")
+        with open(outpath+"_topk", 'w') as h1, \
+            open(outpath+"_sample", 'w') as h2:
+                for query in tqdm(self.qid2negs):
+                    
+                    chosen_negatives_sample, chosen_negatives_topk = self.choose_negatives(query, n)
+                    
+                    h1.write(f"{query}\t{','.join(chosen_negatives_topk)}\n") 
+                    h2.write(f"{query}\t{','.join(chosen_negatives_sample)}\n")
 
 
+##############################
+##############################
+##############################
+##############################
+##############################
+##############################
 
-        return chosen_negatives
+class MetaHardNegatives(HardNegatives):
+    def __init__(self, qrels_path, run_path, embeddings_path, model_args, data_args, training_args):
+        
+        super().__init__(qrels_path, run_path, embeddings_path=None) # no need to store embeddings
+
+        self.corpus_path = "/data/user_data/jmcoelho/datasets/marco/documents/corpus_firstp_2048.tsv" #TODO argument
+        self.queries_path = "/data/user_data/jmcoelho/datasets/marco/documents/train.query.filtered.txt" #TODO argument
+        self.valid_samples_path = "/data/user_data/jmcoelho/datasets/marco/documents/processed_data/pythia-160m-marco-docs-bow-pretrain/random/val.jsonl"
+        self.parse_queries()
+        self.parse_corpus()
+        self.parse_jsonl()
+
+        self.data_args = data_args
+
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            model_args.model_name_or_path,
+            cache_dir=model_args.cache_dir,
+        )
+
+        if self.tokenizer.pad_token_id is None:
+            self.tokenizer.pad_token_id = self.tokenizer.unk_token_id
+        self.tokenizer.padding_side = 'right'
+
+        self.model_static = DenseModelLESS.build(
+            model_args,
+            training_args,
+            cache_dir=model_args.cache_dir,
+            )
+        self.model_static.to("cuda")
+
+
+        self.model_pseudo_updates = DenseModelLESS.build(
+            model_args,
+            training_args,
+            cache_dir=model_args.cache_dir,
+            )
+        self.model_pseudo_updates.to("cuda")
+        self.model_pseudo_updates.train()
+
+
+    def set_seed(self, seed):
+        random.seed(seed)
+
+    def init_optimizer(self):
+        # init optimizer
+        self.optimizer = optim.Adam(
+            self.model_pseudo_updates.parameters(),
+            lr=1e-5,
+            eps=1e-8,
+        )
+
+    def parse_jsonl(self):
+        self.valid_samples = []
+        with open(self.valid_samples_path, 'r') as file:
+            for line in file:
+                # Strip newline character and parse JSON
+                json_data = json.loads(line.strip())
+                self.valid_samples.append(json_data)
+        
+    def parse_corpus(self):
+        logger.info(f"Loading corpus text")
+        self.did2text = {}
+
+        with open(self.corpus_path, 'r') as h:
+            for line in h:
+                did, title, text = line.strip().split("\t")
+                self.did2text[did] = f' Title: {title.strip()} Text: {text.strip()}'.strip()
+
+    def parse_queries(self):
+        logger.info(f"Loading queries text")
+        self.qid2text = {}
+        with open(self.queries_path, 'r') as h:
+            for line in h:
+                qid, text = line.strip().split("\t")
+                self.qid2text[qid] = text
+
+        
+    def get_validation_gradient(self, embeddings_path):
+        validation_gradients = []
+        for file_name in os.listdir(embeddings_path):
+            if file_name.endswith(".pkl"):
+                with open(f"{embeddings_path}/{file_name}", 'rb') as h:
+                    grad = pickle.load(h)
+                    validation_gradients.append(grad)
+        
+        print(f"Loaded {len(validation_gradients)} valid gradients")
+        return validation_gradients
+        
+    def tokenize(self, q, d):
+
+            q_collated = self.tokenizer(
+                q,
+                padding=False, 
+                truncation=True,
+                max_length=self.data_args.query_max_len-1 if self.data_args.append_eos_token else self.data_args.query_max_len,
+                return_attention_mask=False,
+                return_token_type_ids=False,
+                add_special_tokens=True,
+            )
+            d_collated = self.tokenizer(
+                d,
+                padding=False, 
+                truncation=True,
+                max_length=self.data_args.passage_max_len-1 if self.data_args.append_eos_token else self.data_args.passage_max_len,
+                return_attention_mask=False,
+                return_token_type_ids=False,
+                add_special_tokens=True,
+            )
+
+            if self.data_args.append_eos_token:
+                q_collated['input_ids'] = [q + [self.tokenizer.eos_token_id] for q in q_collated['input_ids']]
+                d_collated['input_ids'] = [d + [self.tokenizer.eos_token_id] for d in d_collated['input_ids']]
+            
+            q_collated = self.tokenizer.pad(
+                q_collated,
+                padding=True, 
+                pad_to_multiple_of=self.data_args.pad_to_multiple_of,
+                return_attention_mask=True,
+                return_tensors='pt',
+            )
+            d_collated = self.tokenizer.pad(
+                d_collated,
+                padding=True, 
+                pad_to_multiple_of=self.data_args.pad_to_multiple_of,
+                return_attention_mask=True,
+                return_tensors='pt',
+            )
+            return q_collated, d_collated
+
+    def pseudo_update(self, q, d, vq, vd):
+        
+        with torch.cuda.amp.autocast(dtype=torch.bfloat16): #HACK hardcoded to bf16
+            q = {k:v.to("cuda") for k, v in q.items()}
+            d = {k:v.to("cuda") for k, v in d.items()}
+
+            loss = self.model_pseudo_updates(q, d).loss
+            eps = torch.ones(loss.size(), requires_grad=True).to(loss.device)
+
+            l_f_meta = torch.sum(loss * eps) 
+
+            l_f_meta.backward()
+            self.optimizer.step()
+            self.optimizer.zero_grad()
+
+            vq = {k:v.to("cuda") for k, v in vq.items()}
+            vd = {k:v.to("cuda") for k, v in vd.items()}
+            l_g_meta = self.model_pseudo_updates(vq, vd, per_sample=False).loss
+
+            grad_eps = torch.autograd.grad(l_g_meta, eps, only_inputs=True)[0]
+
+            w_tilde = torch.clamp(-grad_eps, min=0)
+            norm_c = torch.sum(w_tilde)
+
+            if norm_c != 0:
+                w = w_tilde / norm_c
+            else:
+                w = w_tilde
+
+            print(w)
+            print(w.shape)
+            exit()
+
+            # nahh.. something missing. eps was not used, grad'll be zero!
+        
+
+
+            # grads = torch.autograd.grad(
+            #     l_f_meta, 
+            #     [p for n, p in self.model_pseudo_updates.named_buffers() if p.requires_grad], 
+            #     create_graph=True
+            # )
+
+            # grads = self.get_name2grad(grads, self.model_pseudo_updates.named_buffers())
+            # deltas = self.convert_grad2delta(grads, self.optimizer)
+            # self.model_pseudo_updates.update_params(deltas)
+
+            
+    
+    def choose_negatives(self, query: int, n: int) -> list[str]:
+        positive_id = self.qid2pos[query]
+        negative_ids = self.qid2negs[query]
+
+        positive_text = self.did2text[positive_id]
+        negative_texts = [self.did2text[did] for did in negative_ids]
+        query_text = self.qid2text[query]
+
+        queries = [query_text]
+        documents = [positive_text]
+        for neg in negative_texts:
+            documents.append(neg)
+
+        q, d = self.tokenize(queries, documents)
+
+        valid_instances = random.sample(self.valid_samples, 6)
+        v_queries = []
+        v_documents = []
+        for valid_instance in valid_instances:
+            v_queries.append(self.tokenizer.decode(valid_instance["query"]))
+            v_documents.append(self.tokenizer.decode(valid_instance["positives"][0]))
+            v_documents += self.tokenizer.batch_decode(valid_instance["negatives"][:9])
+
+        vq, vd =  self.tokenize(v_queries, v_documents)
+
+
+        self.init_optimizer()
+        self.pseudo_update(q, d, vq, vd)
+
+        print("did pseudo update")
+        exit()
+
+        _, top_indices = torch.topk(dot_prods, k=n)
+        probabilities = torch.nn.functional.softmax(dot_prods, dim=0)
+
+        chosen_negatives_topk = []
+
+        for index in top_indices.tolist():
+            negative_id = negative_ids[index]
+            chosen_negatives_topk.append(negative_id)
+
+        chosen_negatives_sample = random.choices(negative_ids, weights=probabilities, k=n)
+
+        return [chosen_negatives_sample, chosen_negatives_topk]
+    
+
+
+    def sample_hard_negatives(self, n, outpath):
+        logger.info(f"Sampling started.")
+        with open(outpath+"_topk", 'w') as h1, \
+            open(outpath+"_sample", 'w') as h2:
+                for query in tqdm(self.qid2negs):
+                    
+                    chosen_negatives_sample, chosen_negatives_topk = self.choose_negatives(query, n)
+                    
+                    h1.write(f"{query}\t{','.join(chosen_negatives_topk)}\n") 
+                    h2.write(f"{query}\t{','.join(chosen_negatives_sample)}\n")
