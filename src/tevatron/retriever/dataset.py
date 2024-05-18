@@ -45,7 +45,7 @@ class TrainDataset(Dataset):
 
     def __getitem__(self, item) -> Tuple[str, List[str]]:
         group = self.train_data[item]
-        epoch = int(self.trainer.state.epoch)
+        epoch = int(self.trainer.state.epoch) if self.trainer.state.epoch is not None else 1
 
         _hashed_seed = hash(item + self.trainer.args.seed)
 
@@ -120,7 +120,7 @@ class TrainDatasetPreprocessed(Dataset):
 
     def __getitem__(self, item) -> Tuple[BatchEncoding, List[BatchEncoding]]:
         group = self.train_data[item]
-        epoch = int(self.trainer.state.epoch)
+        epoch = int(self.trainer.state.epoch) if self.trainer.state.epoch is not None else 1
 
         _hashed_seed = hash(item + self.trainer.args.seed)
 
@@ -156,6 +156,81 @@ class TrainDatasetPreprocessed(Dataset):
 
         return encoded_query, encoded_passages
 
+
+class TrainDatasetPreprocessedWeighted(Dataset):
+    def __init__(self, data_args: DataArguments, trainer = None):
+        self.data_args = data_args
+        self.train_data = load_dataset(
+            self.data_args.dataset_name,
+            self.data_args.dataset_config,
+            data_files=self.data_args.dataset_path,
+            split=self.data_args.dataset_split,
+            cache_dir=self.data_args.dataset_cache_dir,
+        )
+        if self.data_args.dataset_number_of_shards > 1:
+            self.encode_data = self.encode_data.shard(
+                num_shards=self.data_args.dataset_number_of_shards,
+                index=self.data_args.dataset_shard_index,
+            )
+        self.trainer = trainer
+
+    def create_one_example(self, text_encoding: List[int], is_query=False):
+        max_length = self.data_args.query_max_len if is_query else self.data_args.passage_max_len
+
+        if self.data_args.append_eos_token:
+            max_length -= 1
+
+        item = self.tokenizer.prepare_for_model(
+            text_encoding,
+            truncation='only_first',
+            max_length=max_length,
+            padding=False,
+            return_attention_mask=False,
+            return_token_type_ids=False,
+        )
+        return item
+
+    def __len__(self):
+        return len(self.train_data)
+
+    def __getitem__(self, item) -> Tuple[BatchEncoding, List[BatchEncoding]]:
+        group = self.train_data[item]
+        epoch = int(self.trainer.state.epoch) if self.trainer.state.epoch is not None else 1
+
+        _hashed_seed = hash(item + self.trainer.args.seed)
+
+        qry = group['query']
+        encoded_query = self.create_one_example(qry, is_query=True)
+
+        encoded_passages = []
+        group_positives = group['positives']
+        group_negatives = group['negatives']
+
+        if self.data_args.positive_passage_no_shuffle:
+            pos_psg = group_positives[0]
+        else:
+            pos_psg = group_positives[(_hashed_seed + epoch) % len(group_positives)]
+        encoded_passages.append(self.create_one_example(pos_psg))
+
+        negative_size = self.data_args.train_group_size - 1
+        if len(group_negatives) < negative_size:
+            negs = random.choices(group_negatives, k=negative_size)
+        elif self.data_args.train_group_size == 1:
+            negs = []
+        elif self.data_args.negative_passage_no_shuffle:
+            negs = group_negatives[:negative_size]
+        else:
+            _offset = epoch * negative_size % len(group_negatives)
+            negs = [x for x in group_negatives]
+            random.Random(_hashed_seed).shuffle(negs)
+            negs = negs * 2
+            negs = negs[_offset: _offset + negative_size]
+
+        for neg_psg in negs:
+            encoded_passages.append(self.create_one_example(neg_psg))
+
+        return encoded_query, encoded_passages, group["weight"]
+    
 class ValidDatasetPreprocessed(Dataset):
     def __init__(self, data_args: DataArguments, trainer = None):
         self.data_args = data_args
@@ -203,6 +278,7 @@ class ValidDatasetPreprocessed(Dataset):
         group_negatives = group['negatives']
 
         pos_psg = group_positives[0]
+        encoded_passages.append(self.create_one_example(pos_psg))
         
         negative_size = self.data_args.train_group_size - 1
         if len(group_negatives) < negative_size:
@@ -210,7 +286,7 @@ class ValidDatasetPreprocessed(Dataset):
         elif self.data_args.train_group_size == 1:
             negs = []
         else:
-            negs = group_negatives[:negative_size]
+            negs = group_negatives[:negative_size-1]
        
         for neg_psg in negs:
             encoded_passages.append(self.create_one_example(neg_psg))

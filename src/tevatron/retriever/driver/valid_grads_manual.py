@@ -8,13 +8,23 @@ from transformers import (
     set_seed,
 )
 
+from contextlib import nullcontext
+
 from tevatron.retriever.arguments import ModelArguments, DataArguments, \
     TevatronTrainingArguments as TrainingArguments
-from tevatron.retriever.dataset import TrainDataset, TrainDatasetPreprocessed
-from tevatron.retriever.collator import TrainCollator, TrainCollatorPreprocessed
+from tevatron.retriever.dataset import ValidDatasetPreprocessed
+from tevatron.retriever.collator import TrainCollatorPreprocessed
 from tevatron.retriever.modeling import DenseModel
 from tevatron.retriever.trainer import TevatronTrainer as Trainer
 from tevatron.retriever.gc_trainer import GradCacheTrainer as GCTrainer
+
+from torch.utils.data import DataLoader
+
+import torch
+import numpy as np
+from tqdm import tqdm
+
+import pickle
 
 logger = logging.getLogger(__name__)
 
@@ -74,20 +84,56 @@ def main():
         cache_dir=model_args.cache_dir,
     )
 
-    train_dataset = TrainDataset(data_args) if data_args.dataset_path is None else TrainDatasetPreprocessed(data_args)
-    collator = TrainCollator(data_args, tokenizer) if data_args.dataset_path is None else TrainCollatorPreprocessed(data_args, tokenizer)
-    train_dataset.tokenizer = tokenizer
+    model.to("cuda")
 
-    trainer_cls = GCTrainer if training_args.grad_cache else Trainer
-    trainer = trainer_cls(
-        model=model,
-        args=training_args,
-        eval_dataset=train_dataset,
-        data_collator=collator
-    )
-    train_dataset.trainer = trainer
+    print(sum(p.numel() for p in model.parameters() if p.requires_grad))
 
-    trainer.evaluate()  # TODO: resume training
+    valid_dataset = ValidDatasetPreprocessed(data_args)
+    collator = TrainCollatorPreprocessed(data_args, tokenizer)
+    valid_dataset.tokenizer = tokenizer
+
+    dtype = None
+    if training_args.fp16:
+        print("Set encoding precision: fp16")
+        dtype = torch.float16
+    elif training_args.bf16:
+        print("Set encoding precision: bf16")
+        dtype = torch.bfloat16
+
+    BS=20
+
+    dataloader = DataLoader(valid_dataset, batch_size=BS, collate_fn=collator)
+
+    losses = []
+    with torch.cuda.amp.autocast(dtype=dtype) if dtype is not None else nullcontext():
+        n_grad = 0
+        for batch in tqdm(dataloader):
+
+            q, d = batch
+
+            q = {k:v.to("cuda") for k, v in q.items()}
+            d = {k:v.to("cuda") for k, v in d.items()}
+
+            loss = model(q, d).loss
+
+            losses.append(loss)
+
+            loss.backward()
+
+            # gradients = []
+            # for param in model.parameters():
+            #     if param.grad is not None:
+            #         gradients.append(param.grad.detach().view(-1))
+            
+            # gradient_vector = torch.cat(gradients).cpu().numpy()
+            # with open(f"{data_args.save_gradient_path}/validation_grad_{n_grad}.pkl", 'wb') as h:
+            #     pickle.dump(gradient_vector, h, protocol=pickle.HIGHEST_PROTOCOL)
+
+            model.zero_grad()
+            n_grad += 1
+            torch.cuda.empty_cache()
+
+    print(sum(losses)/len(losses))
 
 
 if __name__ == "__main__":

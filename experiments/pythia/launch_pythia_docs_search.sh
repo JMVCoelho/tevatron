@@ -3,7 +3,7 @@
 #SBATCH --output=logs/%x-%j.out
 #SBATCH -e logs/%x-%j.err
 #SBATCH --partition=general
-#SBATCH --cpus-per-task=4
+#SBATCH --cpus-per-task=24
 #SBATCH --mem=100G
 #SBATCH --time=1-00:00:00
 
@@ -12,15 +12,15 @@ conda activate tevatron
 
 module load cuda-11.8
 
-trained_model_name=pythia-160m-marco-docs-bow-pretrain-bs64-self-hn1-less-normal-sample
+trained_model_name=pythia-160m-marco-docs-bow-ct-pretrain-bs64-10pc-sample-less-negs-self-hn1
 
 EMBEDDING_OUTPUT_DIR=/data/user_data/jmcoelho/embeddings/marco_docs
 mkdir $EMBEDDING_OUTPUT_DIR/$trained_model_name
 
-set -f && python -m tevatron.retriever.driver.search \
+set -f && OMP_NUM_THREADS=24 python -m tevatron.retriever.driver.search \
     --query_reps $EMBEDDING_OUTPUT_DIR/$trained_model_name/query-dev.pkl \
     --passage_reps $EMBEDDING_OUTPUT_DIR/$trained_model_name/corpus*.pkl \
-    --depth 1000 \
+    --depth 100 \
     --batch_size 128 \
     --save_text \
     --save_ranking_to $EMBEDDING_OUTPUT_DIR/$trained_model_name/run.dev.txt
@@ -29,6 +29,12 @@ set -f && python -m tevatron.retriever.driver.search \
 python src/tevatron/utils/format/convert_result_to_trec.py \
     --input $EMBEDDING_OUTPUT_DIR/$trained_model_name/run.dev.txt \
     --output $EMBEDDING_OUTPUT_DIR/$trained_model_name/run.dev.trec
+
+
+
+# python src/tevatron/utils/format/convert_result_to_trec.py \
+#     --input $EMBEDDING_OUTPUT_DIR/$trained_model_name/run.train.10pc.sample.txt \
+#     --output $EMBEDDING_OUTPUT_DIR/$trained_model_name/run.train.10pc.sample.trec
 
 
 qrels=./qrels/marco.docs.dev.qrel.tsv

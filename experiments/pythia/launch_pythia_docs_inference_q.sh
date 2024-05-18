@@ -15,7 +15,7 @@ conda activate tevatron
 
 module load cuda-11.8
 
-trained_model_name=pythia-160m-marco-docs-bow-pretrain-bs64-self-hn1-less-normal-sample
+trained_model_name=pythia-160m-marco-docs-bow-ct-pretrain-bs64-10pc-sample-less-negs-self-hn1
 
 
 EMBEDDING_OUTPUT_DIR=/data/user_data/jmcoelho/embeddings/marco_docs
@@ -38,3 +38,8 @@ python -m tevatron.retriever.driver.encode \
   --passage_max_len 1024 \
   --dataset_path "/data/user_data/jmcoelho/datasets/marco/documents/dev.query.jsonl" \
   --encode_output_path $EMBEDDING_OUTPUT_DIR/$trained_model_name/query-dev.pkl
+
+
+
+  # --dataset_path "/data/user_data/jmcoelho/datasets/marco/documents/10.percent.sample.v2.train.query.filtered.jsonl" \
+  # --encode_output_path $EMBEDDING_OUTPUT_DIR/$trained_model_name/10-percent-sample-query-train.pkl

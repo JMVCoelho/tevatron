@@ -13,9 +13,9 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class TevatronTrainer(Trainer):
+class WeightedTevatronTrainer(Trainer):
     def __init__(self, *args, **kwargs):
-        super(TevatronTrainer, self).__init__(*args, **kwargs)
+        super(WeightedTevatronTrainer, self).__init__(*args, **kwargs)
         self.is_ddp = dist.is_initialized()
         self._dist_loss_scale_factor = dist.get_world_size() if self.is_ddp else 1
 
@@ -42,10 +42,10 @@ class TevatronTrainer(Trainer):
                     print(f"Save model at {output_dir}")
 
     def compute_loss(self, model, inputs):
-        query, passage = inputs
-        loss = model(query=query, passage=passage).loss
+        query, passage, weights = inputs
+        loss = model(query=query, passage=passage, weights=weights).loss
         return loss
 
     def training_step(self, *args):
-        return super(TevatronTrainer, self).training_step(*args) / self._dist_loss_scale_factor
+        return super(WeightedTevatronTrainer, self).training_step(*args) / self._dist_loss_scale_factor
 

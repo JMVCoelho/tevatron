@@ -10,10 +10,10 @@ from transformers import (
 
 from tevatron.retriever.arguments import ModelArguments, DataArguments, \
     TevatronTrainingArguments as TrainingArguments
-from tevatron.retriever.dataset import TrainDataset, TrainDatasetPreprocessed
-from tevatron.retriever.collator import TrainCollator, TrainCollatorPreprocessed
+from tevatron.retriever.dataset import TrainDatasetPreprocessedWeighted
+from tevatron.retriever.collator import TrainCollatorPreprocessedWeighted
 from tevatron.retriever.modeling import DenseModel
-from tevatron.retriever.trainer import TevatronTrainer as Trainer
+from tevatron.retriever.weighted_trainer import WeightedTevatronTrainer as Trainer
 from tevatron.retriever.gc_trainer import GradCacheTrainer as GCTrainer
 
 logger = logging.getLogger(__name__)
@@ -74,20 +74,23 @@ def main():
         cache_dir=model_args.cache_dir,
     )
 
-    train_dataset = TrainDataset(data_args) if data_args.dataset_path is None else TrainDatasetPreprocessed(data_args)
-    collator = TrainCollator(data_args, tokenizer) if data_args.dataset_path is None else TrainCollatorPreprocessed(data_args, tokenizer)
+    train_dataset = TrainDatasetPreprocessedWeighted(data_args)
+    collator = TrainCollatorPreprocessedWeighted(data_args, tokenizer)
     train_dataset.tokenizer = tokenizer
 
     trainer_cls = GCTrainer if training_args.grad_cache else Trainer
     trainer = trainer_cls(
         model=model,
         args=training_args,
-        eval_dataset=train_dataset,
+        train_dataset=train_dataset,
         data_collator=collator
     )
     train_dataset.trainer = trainer
 
-    trainer.evaluate()  # TODO: resume training
+    trainer.train()  # TODO: resume training
+    trainer.save_model()
+    if trainer.is_world_process_zero():
+        tokenizer.save_pretrained(training_args.output_dir)
 
 
 if __name__ == "__main__":

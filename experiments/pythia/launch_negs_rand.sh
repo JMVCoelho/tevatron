@@ -12,17 +12,22 @@ conda activate tevatron
 
 module load cuda-11.8
 
-model=pythia-160m-marco-docs-bow-pretrain 
+#model=pythia-160m-marco-docs-bow-ct-pretrain-bs64-10pc-sample-less-neg
+#--train_run_path /data/user_data/jmcoelho/embeddings/marco_docs/pythia-160m-1024-marco-docs-bow-contrastive-pretrain/msmarco-doctrain-top100-seqids.txt\
+
+
+model=pythia-160m-1024-marco-docs-bow-contrastive-pretrain
+
 n_negatives=9
 
 python -m tevatron.retriever.driver.select_hard_negatives \
     --method random \
-    --validation_set /data/user_data/jmcoelho/datasets/marco/documents/processed_data/pythia-160m-marco-docs-bow-pretrain/random/val.jsonl \
-    --train_run_path /data/user_data/jmcoelho/embeddings/marco_docs/pythia-160m-marco-docs-bow-pretrain/run.train.random.txt \
+    --validation_set /data/user_data/jmcoelho/datasets/marco/documents/processed_data/pythia-160m-1024-marco-docs-bow-contrastive-pretrain/bm25/val.jsonl \
+    --train_run_path /data/user_data/jmcoelho/datasets/marco/documents/msmarco-doctrain-top100-seqids.txt \
     --train_qrels /data/user_data/jmcoelho/datasets/marco/documents/qrels.train.tsv \
     --embedding_path /data/user_data/jmcoelho/embeddings/marco_docs/$model/ \
     --number_of_negatives $n_negatives \
-    --negatives_out_file /data/user_data/jmcoelho/embeddings/marco_docs/pythia-160m-marco-docs-bow-pretrain/random_train_run_splits/random/hardnegs_random.random.txt \
+    --negatives_out_file /data/user_data/jmcoelho/embeddings/marco_docs/pythia-160m-1024-marco-docs-bow-contrastive-pretrain/random_train_run_splits/random-bm25/10pc.train.random.txt \
     --output_dir temp \
     --model_name_or_path /data/user_data/jmcoelho/models/fine-tuned/$model \
     --dataset_cache_dir /data/datasets/hf_cache \

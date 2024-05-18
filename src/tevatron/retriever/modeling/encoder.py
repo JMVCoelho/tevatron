@@ -42,13 +42,14 @@ class EncoderModel(nn.Module):
         self.loss = loss
 
         self.cross_entropy = nn.CrossEntropyLoss(reduction='mean')
+        self.non_reduced_ce = nn.CrossEntropyLoss(reduction="none")
 
         self.is_ddp = dist.is_initialized()
         if self.is_ddp:
             self.process_rank = dist.get_rank()
             self.world_size = dist.get_world_size()
 
-    def forward(self, query: Dict[str, Tensor] = None, passage: Dict[str, Tensor] = None):
+    def forward(self, query: Dict[str, Tensor] = None, passage: Dict[str, Tensor] = None, weights = None):
         q_reps = self.encode_query(query) if query else None
         p_reps = self.encode_passage(passage) if passage else None
 
@@ -71,7 +72,8 @@ class EncoderModel(nn.Module):
             target = torch.arange(scores.size(0), device=scores.device, dtype=torch.long)
             target = target * (p_reps.size(0) // q_reps.size(0))
 
-            loss = self.compute_loss(scores / self.temperature, target)
+            loss = self.compute_loss(scores / self.temperature, target, weights)
+
             if self.is_ddp:
                 loss = loss * self.world_size  # counter average weight reduction
         # for eval
@@ -94,10 +96,20 @@ class EncoderModel(nn.Module):
     def compute_similarity(self, q_reps, p_reps):
         return torch.matmul(q_reps, p_reps.transpose(0, 1))
 
-    def compute_loss(self, scores, target):
+    def compute_loss(self, scores, target, weights):
 
         if self.loss == "contrastive":
-            return self.cross_entropy(scores, target)
+            if weights is None:
+                return self.cross_entropy(scores, target)
+            else:
+                loss = self.cross_entropy(scores, target)
+
+                #loss = self.non_reduced_ce(scores, target)
+                #weights = torch.ones_like(weights)
+                #weighted_average = torch.sum(loss * weights)
+                #return weighted_average
+                return loss
+            
         
         elif self.loss == "hinge":
 
