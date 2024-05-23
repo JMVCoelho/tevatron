@@ -6,13 +6,15 @@
 #SBATCH --cpus-per-task=24
 #SBATCH --mem=100G
 #SBATCH --time=1-00:00:00
+#SBATCH --exclude=babel-8-3,babel-11-25
+
 
 eval "$(conda shell.bash hook)"
 conda activate tevatron
 
 module load cuda-11.8
 
-trained_model_name=pythia-160m-marco-docs-bow-ct-pretrain-bs64-10pc-sample-less-negs-self-hn1
+trained_model_name=$1
 
 EMBEDDING_OUTPUT_DIR=/data/user_data/jmcoelho/embeddings/marco_docs
 mkdir $EMBEDDING_OUTPUT_DIR/$trained_model_name
@@ -42,3 +44,5 @@ trec_run=$EMBEDDING_OUTPUT_DIR/$trained_model_name/run.dev.trec
 
 python scripts/evaluate.py $qrels $trec_run
 python scripts/evaluate.py -m mrr_cut.100 $qrels $trec_run
+
+wait

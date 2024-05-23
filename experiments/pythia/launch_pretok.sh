@@ -6,13 +6,17 @@
 #SBATCH --cpus-per-task=12
 #SBATCH --mem=100G
 #SBATCH --time=1-00:00:00
+#SBATCH --exclude=babel-8-3,babel-11-25
 
 export TRANSFORMERS_CACHE=/data/datasets/hf_cache
 eval "$(conda shell.bash hook)"
 conda activate tevatron
 module load cuda-11.8
 
-trained_model_name="pythia-160m-marco-docs-bow-ct-pretrain-bs64-10pc-sample-less-negs"
+trained_model_name=$1
+save_pretok=$2
+negative_file=$3
+
 text_length=1024
 
 data_path=/data/user_data/jmcoelho/datasets/marco/documents
@@ -21,13 +25,14 @@ train_qrels=$data_path/qrels.train.tsv
 corpus=$data_path/corpus_firstp_2048.tsv
 train_queries=$data_path/train.query.filtered.txt
 
-initial_data_save_folder=$data_path/processed_data/$trained_model_name/less_10_pc_sample/triplet
+initial_data_save_folder=$save_pretok
 
+#bs64_contrastive_topk
 mkdir -p $initial_data_save_folder
 
 python scripts/pretokenize.py \
    --tokenizer_name /data/user_data/jmcoelho/models/fine-tuned/$trained_model_name \
-   --negative_file /data/user_data/jmcoelho/embeddings/marco_docs/$trained_model_name/less_train_run_splits/triplet/hardnegs_less_opacus_10.pc.txt  \
+   --negative_file $negative_file\
    --qrels $train_qrels  \
    --queries $train_queries  \
    --collection $corpus \

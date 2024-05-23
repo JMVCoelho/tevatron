@@ -144,7 +144,7 @@ class RandomHardNegatives(HardNegatives):
         random.seed(seed)
 
     def choose_negatives(self, query: int, n: int) -> list[str]:
-        possible_negatives = self.qid2negs[query]
+        possible_negatives = self.qid2negs[query][:50]
         return random.sample(possible_negatives, n)
 
 class InDiHardNegatives(HardNegatives):
@@ -380,6 +380,8 @@ class LESSHardNegativesOpacus(HardNegatives):
             self.tokenizer.pad_token_id = self.tokenizer.unk_token_id
         self.tokenizer.padding_side = 'right'
 
+        self.temperatures = [1, 10, 20, 40, 80, 100, 1000, 10000, 100000]
+        #self.temperatures = ["inf"]
 
         self.model = DenseModelLESS.build(
             model_args,
@@ -494,7 +496,7 @@ class LESSHardNegativesOpacus(HardNegatives):
     
     def choose_negatives(self, query: int, n: int) -> list[str]:
         positive_id = self.qid2pos[query]
-        negative_ids = self.qid2negs[query][:50]
+        negative_ids = self.qid2negs[query]
 
         positive_text = self.did2text[positive_id]
         negative_texts = [self.did2text[did] for did in negative_ids]
@@ -511,46 +513,58 @@ class LESSHardNegativesOpacus(HardNegatives):
 
         _, top_indices = torch.topk(dot_prods, k=n)
 
-        TEMPERATURE = 10
+        
 
-        probabilities = torch.nn.functional.softmax(dot_prods / TEMPERATURE, dim=0).detach().float().cpu().numpy()
-        probabilities /= probabilities.sum() # make sure sums to 1... numpy cant handle 1.000000001
+        samples = []
+        for temperature in self.temperatures:
+
+            probabilities = torch.nn.functional.softmax(dot_prods / temperature, dim=0).detach().float().cpu().numpy()
+            probabilities /= probabilities.sum() # make sure sums to 1... numpy cant handle 1.000000001
+            
+            try:
+                chosen_negatives_sample = np.random.choice(negative_ids, size=n, replace=False, p=probabilities)
+            except Exception as e:
+                print("sampling randomly")
+                chosen_negatives_sample = np.random.choice(negative_ids, size=n, replace=False)
+
+            if temperature not in self.distributions:
+                self.distributions[temperature] = probabilities
+            else:
+                self.distributions[temperature] += probabilities
+
+            samples.append(chosen_negatives_sample)
+
+
         
         chosen_negatives_topk = []
 
         for index in top_indices.tolist():
-            self.counter_topk[index] += 1
             negative_id = negative_ids[index]
             chosen_negatives_topk.append(negative_id)
 
-        try:
-            chosen_negatives_sample = np.random.choice(negative_ids, size=n, replace=False, p=probabilities)
-        except Exception as e:
-            print("sampling randomly")
-            chosen_negatives_sample = np.random.choice(negative_ids, size=n, replace=False)
-
-        for neg in chosen_negatives_sample:
-            self.counter_sample[negative_ids.index(neg)] += 1
-
-        return [chosen_negatives_sample, chosen_negatives_topk]
+        return [samples, chosen_negatives_topk]
     
     def sample_hard_negatives(self, n, outpath):
         self.counter_topk = defaultdict(int)
         self.counter_sample = defaultdict(int)
-        logger.info(f"Sampling started.")
-        with open(outpath+"_topk", 'w') as h1, \
-            open(outpath+"_sample", 'w') as h2:
 
+        self.distributions = {}
+        logger.info(f"Sampling started.")
+        with open(outpath+"_topk", 'w') as h1:
                 for query in tqdm(self.qid2negs):
-                    
-                    chosen_negatives_sample, chosen_negatives_topk = self.choose_negatives(query, n)
+
+                    samples, chosen_negatives_topk = self.choose_negatives(query, n)
                     
                     h1.write(f"{query}\t{','.join(chosen_negatives_topk)}\n") 
-                    if chosen_negatives_sample is not None:
-                        h2.write(f"{query}\t{','.join(chosen_negatives_sample)}\n")
+                    if samples is not None:
+                        for sample, temperature in zip(samples, self.temperatures):
+                            with open(outpath+f"_sample_t{temperature}", 'a') as h2:
+                                h2.write(f"{query}\t{','.join(sample)}\n")
+
         
-        print(self.counter_topk)
-        print(self.counter_sample)
+        #print(self.counter_topk)
+        #print(self.counter_sample)
+        print(self.distributions)
                     
 
 

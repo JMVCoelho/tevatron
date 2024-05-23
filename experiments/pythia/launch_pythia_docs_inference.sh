@@ -7,6 +7,8 @@
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=50G
 #SBATCH --time=2-00:00:00
+#SBATCH --exclude=babel-8-3,babel-11-25
+
 
 export TRANSFORMERS_CACHE=/data/datasets/hf_cache
 
@@ -15,9 +17,8 @@ conda activate tevatron
 
 module load cuda-11.8
 
-trained_model_name=pythia-160m-marco-docs-bow-ct-pretrain-bs64-10pc-sample-less-negs-self-hn1
-
-shard=$1
+trained_model_name=$1
+shard=$2
 
 echo "running for shard $shard"
 
