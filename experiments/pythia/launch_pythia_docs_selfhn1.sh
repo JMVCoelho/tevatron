@@ -3,11 +3,11 @@
 #SBATCH --output=logs/%x-%j.out
 #SBATCH -e logs/%x-%j.err
 #SBATCH --partition=general
-#SBATCH --gres=gpu:A6000:1
+#SBATCH --gres=gpu:A6000:2
 #SBATCH --cpus-per-task=4
-#SBATCH --mem=15G
+#SBATCH --mem=32G
 #SBATCH --time=2-00:00:00
-#SBATCH --exclude=babel-8-3,babel-11-25
+#SBATCH --exclude=babel-4-36,babel-8-3
 
 export TRANSFORMERS_CACHE=/data/datasets/hf_cache
 
@@ -25,10 +25,10 @@ training_data=$2
 model_to_train=$3
 port=$4
 
-deepspeed --include localhost:0 --master_port $4 --module tevatron.retriever.driver.train \
+deepspeed --include localhost:0,1 --master_port $4 --module tevatron.retriever.driver.train \
   --deepspeed deepspeed/ds_zero3_config.json \
   --output_dir /data/user_data/jmcoelho/models/fine-tuned/$trained_model_name \
-  --model_name_or_path /data/user_data/jmcoelho/models/fine-tuned/$model_to_train \
+  --model_name_or_path /data/user_data/jmcoelho/models/$model_to_train \
   --dataset_path $training_data \
   --dataset_cache_dir /data/datasets/hf_cache \
   --cache_dir /data/datasets/hf_cache \

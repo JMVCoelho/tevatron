@@ -11,3 +11,6 @@ hardnegs_indi.txt
 hardnegs_less.txt
 hardnegs_less_00.txt
 hardnegs_less_01.txt
+hardnegs_less_opacus_10.pc.full.topk
+hardnegs_less_opacus.20.pc.0.txt_dotprods_ep1.pkl
+hardnegs_less_opacus.20.pc.0.txt_dotprods_ep2.pkl

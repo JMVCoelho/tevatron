@@ -69,7 +69,7 @@
 
 # write_to_jsonl(random_selection, "/data/user_data/jmcoelho/datasets/marco/documents/10.percent.sample.val.query.filtered.jsonl")
 
-
+## BM25 SCRIPT
 
 import json
 import pickle
@@ -91,15 +91,60 @@ with open(path + "id2seqint_mapper.pkl", 'rb') as h:
 print(list(mapper.keys())[:10])
 
 
-sample = parse_jsonl_file(path+"10.percent.sample.train.query.filtered.jsonl")
+sample = parse_jsonl_file(path+"20.percent.sample.train.query.filtered.jsonl")
 queries = set([s["query_id"] for s in sample])
 print(len(queries))
 
 with open(path+"msmarco-doctrain-top100", 'r') as h, \
-    open(path+"msmarco-doctrain-top100-seqids.txt", 'w') as out:
+    open(path+"20pc-msmarco-doctrain-top100-seqids.txt", 'w') as out:
     for line in h:
         q, q0, did, pos, score, method = line.strip().split()
         if q in queries:
             did = mapper[did[1:]]
             out.write(f"{q}\t{did}\t{score}\n")
 
+
+
+
+# Sanity CHECK
+# def load_qrels(path):
+#     qid2pos = {}
+
+#     with open(path, 'r') as h:
+
+#         for line in h:
+#             qid, q0, did, rel = line.strip().split("\t")
+
+#             if qid not in qid2pos:
+#                 qid2pos[qid] = []
+
+#             qid2pos[qid].append(did)
+    
+#     return qid2pos
+
+# qid2pos = load_qrels("/data/user_data/jmcoelho/datasets/marco/documents/qrels.train.tsv")
+# print(len(qid2pos))
+
+# ZAU = []
+
+# def load_run(path):
+#     qid2negs = {}
+
+#     with open(path, 'r') as h:
+#         i=1
+#         for line in h:  
+#             qid, did, score = line.strip().split()
+#             if qid not in qid2negs:
+#                 qid2negs[qid] = []
+
+#             if did not in qid2pos[qid]:
+#                 qid2negs[qid].append(did)
+
+#     return qid2negs 
+
+
+# qid2negs = load_run("/data/user_data/jmcoelho/embeddings/marco_docs/pythia-160m-marco-docs-bow-ct-pretrain-bs64-10pc-sample-less-negs/less_train_run_splits/run.train.10pc.sample.0")
+
+# for idx,qid in enumerate(qid2negs):
+#     if len(qid2negs[qid]) not in [99, 100]:
+#         print(qid, len(qid2negs[qid]))

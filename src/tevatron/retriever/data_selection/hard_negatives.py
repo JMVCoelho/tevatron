@@ -60,8 +60,9 @@ class HardNegatives(ABC):
                 qid, q0, did, rel = line.strip().split("\t")
 
                 if qid not in self.qid2pos:
-                    self.qid2pos[qid] = did
-
+                    self.qid2pos[qid] = []
+                
+                self.qid2pos[qid].append(did)
 
     def load_run(self, path):
         logger.info(f"Loading run: {path}")
@@ -168,7 +169,7 @@ class InDiHardNegatives(HardNegatives):
 
     def choose_negatives(self, query: int, n: int) -> list[str]:
         q_embed = torch.tensor(self.all_embeddings['query'][query]).view(1, -1)
-        pos_embed = torch.tensor(self.all_embeddings['passages'][self.qid2pos[query]]).view(1, -1)
+        pos_embed = torch.tensor(self.all_embeddings['passages'][self.qid2pos[query][0]]).view(1, -1)
         neg_embeds = np.array([self.all_embeddings['passages'][negative] for negative in self.qid2negs[query]])
         neg_embeds = torch.tensor(neg_embeds, requires_grad=True)
 
@@ -329,7 +330,7 @@ class LESSHardNegatives(HardNegatives):
         return gradient_vector
     
     def choose_negatives(self, query: int, n: int) -> list[str]:
-        positive_id = self.qid2pos[query]
+        positive_id = self.qid2pos[query][0]
         negative_ids = self.qid2negs[query]
 
         positive_text = self.did2text[positive_id]
@@ -382,6 +383,8 @@ class LESSHardNegativesOpacus(HardNegatives):
 
         self.temperatures = [1, 10, 20, 40, 80, 100, 1000, 10000, 100000]
         #self.temperatures = ["inf"]
+
+        self.dot_prods = {}
 
         self.model = DenseModelLESS.build(
             model_args,
@@ -495,7 +498,7 @@ class LESSHardNegativesOpacus(HardNegatives):
         return rolling_dot_prods
     
     def choose_negatives(self, query: int, n: int) -> list[str]:
-        positive_id = self.qid2pos[query]
+        positive_id = self.qid2pos[query][0]
         negative_ids = self.qid2negs[query]
 
         positive_text = self.did2text[positive_id]
@@ -513,7 +516,7 @@ class LESSHardNegativesOpacus(HardNegatives):
 
         _, top_indices = torch.topk(dot_prods, k=n)
 
-        
+        self.dot_prods[query] = dot_prods
 
         samples = []
         for temperature in self.temperatures:
@@ -528,9 +531,9 @@ class LESSHardNegativesOpacus(HardNegatives):
                 chosen_negatives_sample = np.random.choice(negative_ids, size=n, replace=False)
 
             if temperature not in self.distributions:
-                self.distributions[temperature] = probabilities
+                self.distributions[temperature] = probabilities[:99]
             else:
-                self.distributions[temperature] += probabilities
+                self.distributions[temperature] += probabilities[:99]
 
             samples.append(chosen_negatives_sample)
 
@@ -565,10 +568,10 @@ class LESSHardNegativesOpacus(HardNegatives):
         #print(self.counter_topk)
         #print(self.counter_sample)
         print(self.distributions)
+
+        with open(outpath+"_dotprods.pkl", 'wb') as h:
+            pickle.dump(self.dot_prods, h, protocol=pickle.HIGHEST_PROTOCOL)
                     
-
-
-
 ##############################
 ##############################
 ##############################
@@ -704,7 +707,7 @@ class LESSHardNegativesQueryLevelOpacus(HardNegatives):
         return dot_prod
     
     def choose_negatives(self, query: int, n: int) -> list[str]:
-        positive_id = self.qid2pos[query]
+        positive_id = self.qid2pos[query][0]
         negative_ids = self.qid2negs[query]
 
         selected_negatives = random.sample(negative_ids, n)
@@ -1020,7 +1023,7 @@ class MetaHardNegatives(HardNegatives):
             
     
     def choose_negatives(self, query: int, n: int) -> list[str]:
-        positive_id = self.qid2pos[query]
+        positive_id = self.qid2pos[query][0]
         negative_ids = self.qid2negs[query]
 
         positive_text = self.did2text[positive_id]

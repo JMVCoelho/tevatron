@@ -53,26 +53,26 @@ class DenseModelLESS(EncoderModel):
                 p_reps = self._dist_gather_tensor(p_reps)
 
             if per_sample:    
-                # negatives = p_reps[1:, :]
-                # positives = p_reps[0, :].expand_as(negatives)
+                negatives = p_reps[1:, :]
+                positives = p_reps[0, :].expand_as(negatives)
                 
-                # interleaved = torch.cat((positives.unsqueeze(1), negatives.unsqueeze(1)), dim=1)
-                # interleaved = interleaved.view(-1, negatives.size(1))
+                interleaved = torch.cat((positives.unsqueeze(1), negatives.unsqueeze(1)), dim=1)
+                interleaved = interleaved.view(-1, negatives.size(1))
 
-                # scores = self.compute_similarity(q_reps, interleaved) / self.temperature
-                # scores = scores.view(scores.size(1)//2, -1)
+                scores = self.compute_similarity(q_reps, interleaved) / self.temperature
+                scores = scores.view(scores.size(1)//2, -1)
 
-                # target = torch.zeros(scores.size(0), dtype=torch.long, device=scores.device)
+                target = torch.zeros(scores.size(0), dtype=torch.long, device=scores.device)
 
-                # loss = F.cross_entropy(scores, target, reduction='none')
+                loss = F.cross_entropy(scores, target, reduction='none')
 
-                scores = self.compute_similarity(q_reps, p_reps)
-                scores = scores.view(q_reps.size(0), -1)
+                # scores = self.compute_similarity(q_reps, p_reps)
+                # scores = scores.view(q_reps.size(0), -1)
 
-                target = torch.arange(scores.size(0), device=scores.device, dtype=torch.long)
-                target = target * (p_reps.size(0) // q_reps.size(0))
+                # target = torch.arange(scores.size(0), device=scores.device, dtype=torch.long)
+                # target = target * (p_reps.size(0) // q_reps.size(0))
 
-                loss = F.cross_entropy(scores / self.temperature, target, reduction='mean')
+                # loss = F.cross_entropy(scores / self.temperature, target, reduction='mean')
             
             else:
                 print("correct")

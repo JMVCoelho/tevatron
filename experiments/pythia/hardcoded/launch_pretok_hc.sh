@@ -13,9 +13,9 @@ eval "$(conda shell.bash hook)"
 conda activate tevatron
 module load cuda-11.8
 
-trained_model_name=$1
-save_pretok=$2
-negative_file=$3
+trained_model_name=pythia-160m-marco-docs-bow-ct-pretrain-bs128-20pc-sample-less-negs
+save_pretok=/data/user_data/jmcoelho/datasets/marco/documents/processed_data/$trained_model_name/random_20_pc_sample
+negative_file=/data/user_data/jmcoelho/embeddings/marco_docs/$trained_model_name/random_train_run_splits/random/20pc.tain+val.random.txt
 
 text_length=1024
 
@@ -31,7 +31,7 @@ initial_data_save_folder=$save_pretok
 mkdir -p $initial_data_save_folder
 
 python scripts/pretokenize.py \
-   --tokenizer_name /data/user_data/jmcoelho/models/$trained_model_name \
+   --tokenizer_name /data/user_data/jmcoelho/models/fine-tuned/$trained_model_name \
    --negative_file $negative_file\
    --qrels $train_qrels  \
    --queries $train_queries  \
