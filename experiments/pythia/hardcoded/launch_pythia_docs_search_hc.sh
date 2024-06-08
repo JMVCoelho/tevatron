@@ -14,23 +14,23 @@ conda activate tevatron
 
 module load cuda-11.8
 
-trained_model_name=pythia-160m-marco-docs-bow-ct-pretrain-bs128-20pc-sample-less-negs-triplet-topk
+trained_model_name=pythia-160m-marco-docs-bow-ct-pretrain-bs128-all-queries-less-topk-negs-top50
 
 EMBEDDING_OUTPUT_DIR=/data/user_data/jmcoelho/embeddings/marco_docs
 mkdir $EMBEDDING_OUTPUT_DIR/$trained_model_name
 
 set -f && OMP_NUM_THREADS=24 python -m tevatron.retriever.driver.search \
-    --query_reps $EMBEDDING_OUTPUT_DIR/$trained_model_name/20-percent-sample-query-train.pkl \
+    --query_reps $EMBEDDING_OUTPUT_DIR/$trained_model_name/query-train.pkl \
     --passage_reps $EMBEDDING_OUTPUT_DIR/$trained_model_name/corpus*.pkl \
     --depth 100 \
     --batch_size 128 \
     --save_text \
-    --save_ranking_to $EMBEDDING_OUTPUT_DIR/$trained_model_name/run.train.20pc.sample.txt
+    --save_ranking_to $EMBEDDING_OUTPUT_DIR/$trained_model_name/run.train.txt
 
 
 python src/tevatron/utils/format/convert_result_to_trec.py \
-    --input $EMBEDDING_OUTPUT_DIR/$trained_model_name/run.train.20pc.sample.txt \
-    --output $EMBEDDING_OUTPUT_DIR/$trained_model_name/run.train.20pc.sample.trec
+    --input $EMBEDDING_OUTPUT_DIR/$trained_model_name/run.train.txt \
+    --output $EMBEDDING_OUTPUT_DIR/$trained_model_name/run.train.trec
 
 
 

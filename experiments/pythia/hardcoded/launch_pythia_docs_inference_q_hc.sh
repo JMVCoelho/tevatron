@@ -15,7 +15,7 @@ conda activate tevatron
 
 module load cuda-11.8
 
-trained_model_name=pythia-160m-marco-docs-bow-ct-pretrain-bs128-20pc-sample-less-negs-triplet-topk
+trained_model_name=pythia-160m-marco-docs-bow-ct-pretrain-bs128-all-queries-less-topk-negs-top50
 
 
 EMBEDDING_OUTPUT_DIR=/data/user_data/jmcoelho/embeddings/marco_docs
@@ -36,8 +36,12 @@ python -m tevatron.retriever.driver.encode \
   --per_device_eval_batch_size 300 \
   --query_max_len 32 \
   --passage_max_len 1024 \
-  --dataset_path "/data/user_data/jmcoelho/datasets/marco/documents/20.percent.sample.train.query.filtered.jsonl" \
-  --encode_output_path $EMBEDDING_OUTPUT_DIR/$trained_model_name/20-percent-sample-query-train.pkl
+  --dataset_path "/data/user_data/jmcoelho/datasets/marco/documents/train.query.filtered.jsonl" \
+  --encode_output_path $EMBEDDING_OUTPUT_DIR/$trained_model_name/query-train.pkl
+
+
+  # --dataset_path "/data/user_data/jmcoelho/datasets/marco/documents/20.percent.sample.train.query.filtered.jsonl" \
+  # --encode_output_path $EMBEDDING_OUTPUT_DIR/$trained_model_name/20-percent-sample-query-train.pkl
 
   # --dataset_path "/data/user_data/jmcoelho/datasets/marco/documents/10.percent.sample.v3.train.query.filtered.jsonl" \
   # --encode_output_path $EMBEDDING_OUTPUT_DIR/$trained_model_name/10-percent-sample-query-train-v3.pkl

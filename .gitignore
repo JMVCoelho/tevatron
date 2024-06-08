@@ -14,3 +14,7 @@ hardnegs_less_01.txt
 hardnegs_less_opacus_10.pc.full.topk
 hardnegs_less_opacus.20.pc.0.txt_dotprods_ep1.pkl
 hardnegs_less_opacus.20.pc.0.txt_dotprods_ep2.pkl
+hardnegs_less_opacus.20.pc.0.txt_avg.pkl
+hardnegs_less_opacus.20.pc.0.txt_norm.pkl
+hardnegs_less_opacus.20.pc.0.txt_var.pkl
+hardnegs_less_opacus.20.pc.1.txt_dotprods_ep2_denoised.pkl

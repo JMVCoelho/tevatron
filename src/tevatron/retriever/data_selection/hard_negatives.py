@@ -145,7 +145,7 @@ class RandomHardNegatives(HardNegatives):
         random.seed(seed)
 
     def choose_negatives(self, query: int, n: int) -> list[str]:
-        possible_negatives = self.qid2negs[query][:50]
+        possible_negatives = self.qid2negs[query]
         return random.sample(possible_negatives, n)
 
 class InDiHardNegatives(HardNegatives):
@@ -200,8 +200,6 @@ class InDiHardNegatives(HardNegatives):
 
         return chosen_negatives
     
-
-
 
 class LESSHardNegatives(HardNegatives):
     def __init__(self, qrels_path, run_path, embeddings_path, model_args, data_args, training_args):
@@ -386,6 +384,10 @@ class LESSHardNegativesOpacus(HardNegatives):
 
         self.dot_prods = {}
 
+        self.avg = {}
+        self.var = {}
+        self.norm = {}
+
         self.model = DenseModelLESS.build(
             model_args,
             training_args,
@@ -474,6 +476,8 @@ class LESSHardNegativesOpacus(HardNegatives):
         with torch.cuda.amp.autocast(dtype=torch.bfloat16): #HACK hardcoded to bf16
             vector = torch.tensor(vector).to("cuda")
 
+            n_params = vector.shape[0]
+
             q = {k:v.to("cuda") for k, v in q.items()}
             d = {k:v.to("cuda") for k, v in d.items()}
 
@@ -482,20 +486,36 @@ class LESSHardNegativesOpacus(HardNegatives):
             loss.backward(gradient=torch.ones_like(loss))
 
             rolling_dot_prods = None # more memory efficient that shaping to [batchsize, n_params]
+            rolling_sum = None
+            rolling_squared_sum = None
             for param in self.model.parameters(): # Opacus is computing for all documents?? ermmmmmmm... model(**docs), this seems to be their samples
                 if param.grad is not None:
                     current_vector = param.grad_sample.detach().view(param.grad_sample.size(0), -1)[1:,:]
+
+                    sums = torch.sum(current_vector, dim=-1)
+                    squared_sums = torch.sum(current_vector**2, dim=-1)
+
                     dimensions = current_vector.size(-1)
                     current_dot = torch.matmul(current_vector, vector[:dimensions])
                     vector = vector[dimensions:]
+
                     if rolling_dot_prods is None:
                         rolling_dot_prods = current_dot
+                        rolling_sum = sums
+                        rolling_squared_sum = squared_sums
                     else:
                         rolling_dot_prods += current_dot
+                        rolling_sum += sums
+                        rolling_squared_sum += squared_sums
+            
+            avg = rolling_sum/n_params
+            norm = torch.sqrt(rolling_squared_sum)
+            var = (rolling_squared_sum / n_params) - ((rolling_sum/n_params) ** 2)
+
 
         self.model.zero_grad() 
 
-        return rolling_dot_prods
+        return rolling_dot_prods, avg, norm, var
     
     def choose_negatives(self, query: int, n: int) -> list[str]:
         positive_id = self.qid2pos[query][0]
@@ -512,11 +532,14 @@ class LESSHardNegativesOpacus(HardNegatives):
 
         q, d = self.tokenize(queries, documents)
 
-        dot_prods = self.get_grad(q, d, random.choice(self.validation_gradients))
+        dot_prods, avg, norm, var = self.get_grad(q, d, random.choice(self.validation_gradients))
 
         _, top_indices = torch.topk(dot_prods, k=n)
 
         self.dot_prods[query] = dot_prods
+        self.avg[query] = avg
+        self.norm[query] = norm
+        self.var[query] = var
 
         samples = []
         for temperature in self.temperatures:
@@ -553,6 +576,7 @@ class LESSHardNegativesOpacus(HardNegatives):
 
         self.distributions = {}
         logger.info(f"Sampling started.")
+
         with open(outpath+"_topk", 'w') as h1:
                 for query in tqdm(self.qid2negs):
 
@@ -564,13 +588,16 @@ class LESSHardNegativesOpacus(HardNegatives):
                             with open(outpath+f"_sample_t{temperature}", 'a') as h2:
                                 h2.write(f"{query}\t{','.join(sample)}\n")
 
-        
-        #print(self.counter_topk)
-        #print(self.counter_sample)
-        print(self.distributions)
 
         with open(outpath+"_dotprods.pkl", 'wb') as h:
             pickle.dump(self.dot_prods, h, protocol=pickle.HIGHEST_PROTOCOL)
+        with open(outpath+"_avg.pkl", 'wb') as h:
+            pickle.dump(self.avg, h, protocol=pickle.HIGHEST_PROTOCOL)
+        with open(outpath+"_norm.pkl", 'wb') as h:
+            pickle.dump(self.norm, h, protocol=pickle.HIGHEST_PROTOCOL)
+        with open(outpath+"_var.pkl", 'wb') as h:
+            pickle.dump(self.var, h, protocol=pickle.HIGHEST_PROTOCOL)
+
                     
 ##############################
 ##############################
@@ -1027,7 +1054,7 @@ class MetaHardNegatives(HardNegatives):
         negative_ids = self.qid2negs[query]
 
         positive_text = self.did2text[positive_id]
-        negative_texts = [self.did2text[did] for did in negative_ids][:50]
+        negative_texts = [self.did2text[did] for did in negative_ids]
         query_text = self.qid2text[query]
 
         queries = [query_text]
