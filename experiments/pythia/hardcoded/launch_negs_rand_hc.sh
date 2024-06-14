@@ -36,7 +36,7 @@ module load cuda-11.8
 
 model=pythia-160m-marco-docs-bow-ct-pretrain-bs128-all-queries-less-topk-negs-top50
 
-n_negatives=9
+n_negatives=18
 
 python -m tevatron.retriever.driver.select_hard_negatives \
     --method random \
@@ -45,7 +45,7 @@ python -m tevatron.retriever.driver.select_hard_negatives \
     --train_qrels /data/user_data/jmcoelho/datasets/marco/documents/qrels.train.tsv \
     --embedding_path /data/user_data/jmcoelho/embeddings/marco_docs/$model/ \
     --number_of_negatives $n_negatives \
-    --negatives_out_file /data/user_data/jmcoelho/embeddings/marco_docs/$model/random_train_run_splits/random/20pc.tain+val.random.txt \
+    --negatives_out_file /data/user_data/jmcoelho/embeddings/marco_docs/$model/random_train_run_splits/random/full.queries.train+val.random.18negs.txt \
     --output_dir temp \
     --model_name_or_path /data/user_data/jmcoelho/models/fine-tuned/$model \
     --dataset_cache_dir /data/datasets/hf_cache \

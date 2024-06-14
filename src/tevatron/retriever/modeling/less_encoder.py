@@ -53,27 +53,35 @@ class DenseModelLESS(EncoderModel):
                 p_reps = self._dist_gather_tensor(p_reps)
 
             if per_sample:    
-                negatives = p_reps[1:, :]
-                positives = p_reps[0, :].expand_as(negatives)
+                # negatives = p_reps[1:, :]
+                # positives = p_reps[0, :].expand_as(negatives)
+
+                # # def add_gaussian_noise(tensor, radius=0.01): # tensor: [n, embedding_dim]
+                # #     norms = torch.norm(tensor, dim=1)  # Compute norms of each vector
+                # #     noise = torch.randn_like(tensor)  # Generate Gaussian noise (N(0,1))
+                # #     scaled_noise = noise * (radius * norms.unsqueeze(1))  # Scale noise with r% norm
+                # #     tensor_with_noise = tensor + scaled_noise  # Add noise to original tensor
+                # #     return tensor_with_noise
                 
-                interleaved = torch.cat((positives.unsqueeze(1), negatives.unsqueeze(1)), dim=1)
-                interleaved = interleaved.view(-1, negatives.size(1))
+                # # negatives = add_gaussian_noise(negatives)
 
-                scores = self.compute_similarity(q_reps, interleaved)
-                scores = scores.view(scores.size(1)//2, -1)
+                # interleaved = torch.cat((positives.unsqueeze(1), negatives.unsqueeze(1)), dim=1)
+                # interleaved = interleaved.view(-1, negatives.size(1))
 
-                target = torch.zeros(scores.size(0), dtype=torch.long, device=scores.device)
+                # scores = self.compute_similarity(q_reps, interleaved)
+                # scores = scores.view(scores.size(1)//2, -1)
 
-                loss = self.non_reduced_ce(scores / self.temperature , target)
+                # target = torch.zeros(scores.size(0), dtype=torch.long, device=scores.device)
 
-                # scores = self.compute_similarity(q_reps, p_reps)
-                # scores = scores.view(q_reps.size(0), -1)
+                # loss = self.non_reduced_ce(scores / self.temperature , target)
 
-                # target = torch.arange(scores.size(0), device=scores.device, dtype=torch.long)
-                # target = target * (p_reps.size(0) // q_reps.size(0))
+                scores = self.compute_similarity(q_reps, p_reps)
+                scores = scores.view(q_reps.size(0), -1)
 
-                # loss = F.cross_entropy(scores / self.temperature, target, reduction='mean')
-            
+                target = torch.arange(scores.size(0), device=scores.device, dtype=torch.long)
+                target = target * (p_reps.size(0) // q_reps.size(0))
+
+                loss = self.cross_entropy(scores/self.temperature, target)            
             else:
                 print("correct")
                 scores = self.compute_similarity(q_reps, p_reps)

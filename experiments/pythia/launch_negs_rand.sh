@@ -16,22 +16,21 @@ module load cuda-11.8
 #--train_run_path /data/user_data/jmcoelho/embeddings/marco_docs/pythia-160m-1024-marco-docs-bow-contrastive-pretrain/msmarco-doctrain-top100-seqids.txt\
 
 
-model=pythia-160m-marco-docs-bow-ct-pretrain-bs64-10pc-sample-less-negs
+model=pythia-160m-marco-docs-bow-ct-pretrain-bs128-all-queries-less-5-group-level-best
 
-n_negatives=18
+n_negatives=9
 
 python -m tevatron.retriever.driver.select_hard_negatives \
     --method random \
     --validation_set /data/user_data/jmcoelho/datasets/marco/documents/processed_data/$model/bm25/val.jsonl \
-    --train_run_path /data/user_data/jmcoelho/embeddings/marco_docs/pythia-160m-marco-docs-bow-ct-pretrain-bs64-10pc-sample-less-negs/run.train.10pc.sample.txt \
+    --train_run_path /data/user_data/jmcoelho/embeddings/marco_docs/$model/run.train.txt \
     --train_qrels /data/user_data/jmcoelho/datasets/marco/documents/qrels.train.tsv \
     --embedding_path /data/user_data/jmcoelho/embeddings/marco_docs/$model/ \
     --number_of_negatives $n_negatives \
-    --negatives_out_file /data/user_data/jmcoelho/embeddings/marco_docs/$model/random_train_run_splits/random/10pc.train.random.18negs.txt \
+    --negatives_out_file /data/user_data/jmcoelho/embeddings/marco_docs/$model/random_train_run_splits/random/full.queries.train.val.random.9negs.txt \
     --output_dir temp \
     --model_name_or_path /data/user_data/jmcoelho/models/fine-tuned/$model \
     --dataset_cache_dir /data/datasets/hf_cache \
     --cache_dir /data/datasets/hf_cache 
-
 
 # head -1 /data/user_data/jmcoelho/embeddings/marco_docs/pythia-160m-marco-docs-bow-ct-pretrain-bs64-10pc-sample-less-negs/random_train_run_splits/random/10pc.val.random.txt

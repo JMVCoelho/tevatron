@@ -18,3 +18,6 @@ hardnegs_less_opacus.20.pc.0.txt_avg.pkl
 hardnegs_less_opacus.20.pc.0.txt_norm.pkl
 hardnegs_less_opacus.20.pc.0.txt_var.pkl
 hardnegs_less_opacus.20.pc.1.txt_dotprods_ep2_denoised.pkl
+hardnegs_less_opacus.full.qs.0.txt_dotprods.1pc.gaussian.noise.pkl
+hardnegs_less_opacus.full.qs.0.txt_dotprods.5pc.gaussian.noise.pkl
+hardnegs_less_opacus.full.qs.0.txt_dotprods.no.noise.pkl

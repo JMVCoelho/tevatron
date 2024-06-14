@@ -519,7 +519,7 @@ class LESSHardNegativesOpacus(HardNegatives):
     
     def choose_negatives(self, query: int, n: int) -> list[str]:
         positive_id = self.qid2pos[query][0]
-        negative_ids = self.qid2negs[query]
+        negative_ids = self.qid2negs[query][:50]
 
         positive_text = self.did2text[positive_id]
         negative_texts = [self.did2text[did] for did in negative_ids]
@@ -578,6 +578,7 @@ class LESSHardNegativesOpacus(HardNegatives):
         logger.info(f"Sampling started.")
 
         with open(outpath+"_topk", 'w') as h1:
+                k = 0
                 for query in tqdm(self.qid2negs):
 
                     samples, chosen_negatives_topk = self.choose_negatives(query, n)
@@ -587,6 +588,10 @@ class LESSHardNegativesOpacus(HardNegatives):
                         for sample, temperature in zip(samples, self.temperatures):
                             with open(outpath+f"_sample_t{temperature}", 'a') as h2:
                                 h2.write(f"{query}\t{','.join(sample)}\n")
+                    
+                    k+=1
+                    if k == 5000:
+                        break
 
 
         with open(outpath+"_dotprods.pkl", 'wb') as h:
@@ -712,7 +717,7 @@ class LESSHardNegativesQueryLevelOpacus(HardNegatives):
     def get_grad(self, q, d, vector):
         
         with torch.cuda.amp.autocast(dtype=torch.bfloat16): #HACK hardcoded to bf16
-            #vector = torch.tensor(vector).to("cuda")
+            vector = torch.tensor(vector).to("cuda")
 
             q = {k:v.to("cuda") for k, v in q.items()}
             d = {k:v.to("cuda") for k, v in d.items()}
@@ -726,51 +731,65 @@ class LESSHardNegativesQueryLevelOpacus(HardNegatives):
                 if param.grad is not None:
                     gradients.append(param.grad.detach().view(-1))
             
-            gradient_vector = torch.cat(gradients).cpu().numpy()
+            gradient_vector = torch.cat(gradients)
             self.model.zero_grad()
 
-        dot_prod = np.dot(gradient_vector, vector)
+            dot_prod = torch.dot(gradient_vector, vector)
 
-        return dot_prod
+        return dot_prod.item()
     
     def choose_negatives(self, query: int, n: int) -> list[str]:
         positive_id = self.qid2pos[query][0]
         negative_ids = self.qid2negs[query]
+        
+        samples = []
 
-        selected_negatives = random.sample(negative_ids, n)
+        # Taking 5 independent samples
+        for _ in range(5):
+            sample = random.sample(negative_ids, n)
+            samples.append(sample)
 
-        positive_text = self.did2text[positive_id]
-        negative_texts = [self.did2text[did] for did in selected_negatives]
+        highest_score = float('-inf')
+        lowest_score = float('inf')
+        best_sample = None
+        worst_sample = None
+
+        valid_grad = random.choice(self.validation_gradients)
+        for sample in samples:
+            positive_text = self.did2text[positive_id]
+            negative_texts = [self.did2text[did] for did in sample]
 
 
-        query_text = self.qid2text[query]
+            query_text = self.qid2text[query]
 
-        queries = [query_text]
-        documents = [positive_text] + negative_texts
+            queries = [query_text]
+            documents = [positive_text] + negative_texts
 
-        q, d = self.tokenize(queries, documents)
+            q, d = self.tokenize(queries, documents)
 
-        query_weight = self.get_grad(q, d, random.choice(self.validation_gradients))
+            score = self.get_grad(q, d, valid_grad)
 
-        chosen_negatives_topk = (selected_negatives, query_weight)
-        chosen_negatives_sample = None
+            if score > highest_score:
+                highest_score = score
+                best_sample = sample
+            if score < lowest_score:
+                lowest_score = score
+                worst_sample = sample
 
-        return [chosen_negatives_sample, chosen_negatives_topk]
+        return best_sample, worst_sample
     
     def sample_hard_negatives(self, n, outpath):
-        self.counter = defaultdict(int)
         logger.info(f"Sampling started.")
-        with open(outpath+"_topk", 'w') as h1, \
-            open(outpath+"_sample", 'w') as h2:
+
+        with open(outpath+"_group_level_best", 'w') as h1, \
+            open(outpath+"_group_level_worst", 'w') as h2:
                 for query in tqdm(self.qid2negs):
                     
-                    chosen_negatives_sample, chosen_negatives_topk = self.choose_negatives(query, n)
+                    best, worst = self.choose_negatives(query, n)
                     
-                    h1.write(f"{query}\t{','.join(chosen_negatives_topk[0])}\t{chosen_negatives_topk[1]}\n") 
-                    if chosen_negatives_sample is not None:
-                        h2.write(f"{query}\t{','.join(chosen_negatives_sample)}\n")
-                    
-        print(self.counter)
+                    h1.write(f"{query}\t{','.join(best)}\n") 
+                    h2.write(f"{query}\t{','.join(worst)}\n")
+
     
 ##############################
 ##############################

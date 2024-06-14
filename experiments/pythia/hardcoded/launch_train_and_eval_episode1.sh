@@ -13,20 +13,27 @@
 # training_data=/data/user_data/jmcoelho/embeddings/marco_docs/$model_to_train/random_train_run_splits/random/20pc.tain+val.random.6negs.txt
 
 
-model_to_train=pythia-160m-marco-docs-bow-ct-pretrain-bs128-all-queries-less-topk-negs-top50
-prefix=fine-tuned
-final_model_name=$model_to_train-self-hn1-random-negs
-save_pretok=/data/user_data/jmcoelho/datasets/marco/documents/processed_data/$model_to_train/random_all_queries_top100
-do_pretok=True 
-training_data=/data/user_data/jmcoelho/embeddings/marco_docs/$model_to_train/random_train_run_splits/random/full.queries.train+val.random.txt 
-
-
-# model_to_train=pythia-160m-1024-marco-docs-bow-contrastive-pretrain
-# prefix=pre-trained
-# final_model_name=pythia-160m-marco-docs-bow-ct-pretrain-bs128-all-queries-less-topk-negs-top50
-# save_pretok=/data/user_data/jmcoelho/datasets/marco/documents/processed_data/$model_to_train/less_topk_all_queries_top50
+# model_to_train=pythia-160m-marco-docs-bow-ct-pretrain-bs128-all-queries-less-topk-negs-top50
+# prefix=fine-tuned
+# final_model_name=$model_to_train-self-hn1-random-negs-3momentum-denoise
+# save_pretok=/data/user_data/jmcoelho/datasets/marco/documents/processed_data/$model_to_train/random_all_queries_top100_3mom_denoise
 # do_pretok=True 
-# training_data=/data/user_data/jmcoelho/embeddings/marco_docs/$model_to_train/full-queries-run-splits/less-opacus-triplet/hardnegs_less_opacus.all.queries.full.topk
+# training_data=/data/user_data/jmcoelho/embeddings/marco_docs/$model_to_train/random_train_run_splits/random/full.queries.train+val.random.3.momentum.denoise.348182
+
+# model_to_train=pythia-160m-marco-docs-bow-ct-pretrain-bs128-all-queries-random-negs-top100
+# prefix=fine-tuned
+# final_model_name=$model_to_train-self-hn1-random-negs-3momentum-denoise
+# save_pretok=/data/user_data/jmcoelho/datasets/marco/documents/processed_data/$model_to_train/random_all_queries_top100_3mom_denoise
+# do_pretok=True 
+# training_data=/data/user_data/jmcoelho/embeddings/marco_docs/$model_to_train/random_train_run_splits/random/full.stain+val.random.top100.txt.3momentum.denoise
+
+
+model_to_train=pythia-160m-marco-docs-bow-ct-pretrain-bs128-all-queries-less-5-group-level-best
+prefix=fine-tuned
+final_model_name=$model_to_train-self-hn1-less-5-group-level-worst
+save_pretok=/data/user_data/jmcoelho/datasets/marco/documents/processed_data/$model_to_train/less_group_level_worst
+do_pretok=False 
+training_data=/data/user_data/jmcoelho/embeddings/marco_docs/$model_to_train/group_level/group_hardnegs_full_worst
 
 
 port=$((RANDOM % (23000 - 20000 + 1) + 20000))
