@@ -7,7 +7,7 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=15G
 #SBATCH --time=2-00:00:00
-#SBATCH --exclude=babel-8-3,babel-11-25
+#SBATCH --exclude=babel-4-36,babel-8-3,babel-4-28
 
 
 export TRANSFORMERS_CACHE=/data/datasets/hf_cache

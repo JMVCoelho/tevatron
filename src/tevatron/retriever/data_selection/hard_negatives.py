@@ -6,6 +6,7 @@ import math
 import json
 from collections import defaultdict
 import torch.nn.functional as F
+import copy
 
 
 from opacus.grad_sample import GradSampleModule
@@ -519,7 +520,7 @@ class LESSHardNegativesOpacus(HardNegatives):
     
     def choose_negatives(self, query: int, n: int) -> list[str]:
         positive_id = self.qid2pos[query][0]
-        negative_ids = self.qid2negs[query][:50]
+        negative_ids = self.qid2negs[query]
 
         positive_text = self.did2text[positive_id]
         negative_texts = [self.did2text[did] for did in negative_ids]
@@ -725,7 +726,7 @@ class LESSHardNegativesQueryLevelOpacus(HardNegatives):
             loss = self.model(q, d).loss
 
             loss.backward(gradient=torch.ones_like(loss))
-
+            
             gradients = []
             for param in self.model.parameters():
                 if param.grad is not None:
@@ -741,7 +742,7 @@ class LESSHardNegativesQueryLevelOpacus(HardNegatives):
     def choose_negatives(self, query: int, n: int) -> list[str]:
         positive_id = self.qid2pos[query][0]
         negative_ids = self.qid2negs[query]
-        
+
         samples = []
 
         # Taking 5 independent samples
@@ -756,6 +757,7 @@ class LESSHardNegativesQueryLevelOpacus(HardNegatives):
 
         valid_grad = random.choice(self.validation_gradients)
         for sample in samples:
+
             positive_text = self.did2text[positive_id]
             negative_texts = [self.did2text[did] for did in sample]
 
@@ -781,6 +783,7 @@ class LESSHardNegativesQueryLevelOpacus(HardNegatives):
     def sample_hard_negatives(self, n, outpath):
         logger.info(f"Sampling started.")
 
+        k = 0
         with open(outpath+"_group_level_best", 'w') as h1, \
             open(outpath+"_group_level_worst", 'w') as h2:
                 for query in tqdm(self.qid2negs):
@@ -789,20 +792,25 @@ class LESSHardNegativesQueryLevelOpacus(HardNegatives):
                     
                     h1.write(f"{query}\t{','.join(best)}\n") 
                     h2.write(f"{query}\t{','.join(worst)}\n")
+                    k += 1
+
+                    if k == 1:
+                        break
 
     
 ##############################
 ##############################
 ##############################
-
-class MetaHardNegatives(HardNegatives):
-    def __init__(self, qrels_path, run_path, embeddings_path, model_args, data_args, training_args):
+class LESSHardNegativesQueryLevelValid(HardNegatives):
+    def __init__(self, qrels_path, run_path, valid_path, model_args, data_args, training_args):
         
         super().__init__(qrels_path, run_path, embeddings_path=None) # no need to store embeddings
 
         self.corpus_path = "/data/user_data/jmcoelho/datasets/marco/documents/corpus_firstp_2048.tsv" #TODO argument
         self.queries_path = "/data/user_data/jmcoelho/datasets/marco/documents/train.query.filtered.txt" #TODO argument
-        self.valid_samples_path = "/data/user_data/jmcoelho/datasets/marco/documents/processed_data/pythia-160m-marco-docs-bow-pretrain/random/val.jsonl"
+        self.valid_samples_path = valid_path 
+        print(self.valid_samples_path)
+
         self.parse_queries()
         self.parse_corpus()
         self.parse_jsonl()
@@ -818,75 +826,19 @@ class MetaHardNegatives(HardNegatives):
             self.tokenizer.pad_token_id = self.tokenizer.unk_token_id
         self.tokenizer.padding_side = 'right'
 
-        self.model_static = DenseModelLESS.build(
+
+        self.model = DenseModelLESS.build(
             model_args,
             training_args,
             cache_dir=model_args.cache_dir,
             )
-        self.model_static.to("cuda")
+        self.model.to("cuda")
 
-
-        self.model_pseudo_updates = DenseModelLESS.build(
-            model_args,
-            training_args,
-            cache_dir=model_args.cache_dir,
-            )
-        
-        self.model_pseudo_updates.train()
-
-        def replace_params_with_buffers(module):
-            # Create a copy of named parameters to avoid RuntimeError
-            named_params_copy = dict(module.named_parameters(recurse=False))
-
-            # Iterate over the copied dictionary
-            for name, param in named_params_copy.items():
-                data = param.data
-                req=False
-                if param.requires_grad:
-                    data.requires_grad = True
-                    req=True
-                delattr(module, name)
-                module.register_buffer(name, nn.Parameter(data, requires_grad=req))
-            
-            # Iterate over named children and recursively apply the function
-            for name, child in module.named_children():
-                replace_params_with_buffers(child)
-
-        replace_params_with_buffers(self.model_pseudo_updates)
-
-        # self.model_pseudo_updates.meta = nn.Module()
-
-        # for key, value in self.model_pseudo_updates.encoder.named_parameters():
-        #     self.model_pseudo_updates.meta.register_buffer(key.replace(".", "_"), value.data)
-        
-        # for n, p in self.model_pseudo_updates.meta.named_buffers():
-        #     p.requires_grad = True
-
-        self.model_pseudo_updates.to("cuda")
-
+        self.model_copy = copy.deepcopy(self.model)
+    
     def set_seed(self, seed):
         random.seed(seed)
-
-    def init_optimizer(self):
-        # init optimizer
-        self.no_decay = ["bias", "LayerNorm.weight"]
-        optimizer_grouped_parameters = [
-            {"params": [p for n, p in self.model_static.named_parameters() if not any(nd in n for nd in self.no_decay)],
-             "weight_decay": 0.0,
-             "names": [n for n, p in self.model_static.named_parameters() if not any(nd in n for nd in self.no_decay)],
-            },
-            {"params": [p for n, p in self.model_static.named_parameters() if any(nd in n for nd in self.no_decay)], 
-             "weight_decay": 0.0,
-             "names": [n for n, p in self.model_static.named_parameters() if any(nd in n for nd in self.no_decay)], 
-            },
-        ]
-
-        self.optimizer = optim.Adam(
-            optimizer_grouped_parameters,
-            lr=1e-5,
-            eps=1e-8,
-        )
-
+    
     def parse_jsonl(self):
         self.valid_samples = []
         with open(self.valid_samples_path, 'r') as file:
@@ -894,6 +846,7 @@ class MetaHardNegatives(HardNegatives):
                 # Strip newline character and parse JSON
                 json_data = json.loads(line.strip())
                 self.valid_samples.append(json_data)
+        print(len(self.valid_samples))
         
     def parse_corpus(self):
         logger.info(f"Loading corpus text")
@@ -911,7 +864,7 @@ class MetaHardNegatives(HardNegatives):
             for line in h:
                 qid, text = line.strip().split("\t")
                 self.qid2text[qid] = text
-        
+
     def tokenize(self, q, d):
 
             q_collated = self.tokenizer(
@@ -952,138 +905,59 @@ class MetaHardNegatives(HardNegatives):
                 return_tensors='pt',
             )
             return q_collated, d_collated
-    
-    def get_adam_delta(self, grads, optimizer):
-        deltas = {}
-        for group in optimizer.param_groups:
-            for n, p in zip(group['names'], group['params']):
-                grad = grads[n]
-                state = optimizer.state[p]
 
-                exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
-                beta1, beta2 = group['betas']
+    def get_grad(self, q, d, qv, dv):
 
-                step = state['step'] + 1
-                
-                if group['weight_decay'] != 0:
-                    grad = grad + group['weight_decay'] * p.data
+        # with torch.cuda.amp.autocast(dtype=torch.bfloat16): #HACK hardcoded to bf16
+        #     qv = {k:v.to("cuda") for k, v in qv.items()}
+        #     dv = {k:v.to("cuda") for k, v in dv.items()}
 
-                bias_correction1 = 1. - beta1 ** step
-                bias_correction2 = 1. - beta2 ** step
+        #     loss = self.model(qv, dv).loss
 
-                step_size = group['lr'] / bias_correction1
-
-                _exp_avg = exp_avg * beta1 + (1. - beta1) * grad
-                _exp_avg_sq = exp_avg_sq * beta2 + (1. - beta2) * grad * grad
-
-                denom = (torch.sqrt(_exp_avg_sq + group['eps']) / math.sqrt(bias_correction2)).add_(group['eps'])
-                deltas[n] = -step_size * _exp_avg / denom
-        return deltas   
-    
-    @staticmethod
-    def get_name2grad(grads, named_buffers):
-        j = 0
-        name2grad = {}
-        for n, p in named_buffers:
-            if p.requires_grad:
-                name2grad[n] = grads[j]
-                j += 1
-        return name2grad
-
-    def pseudo_update(self, q, d, vq, vd):
+        # initial = loss.item()
         
         with torch.cuda.amp.autocast(dtype=torch.bfloat16): #HACK hardcoded to bf16
             q = {k:v.to("cuda") for k, v in q.items()}
             d = {k:v.to("cuda") for k, v in d.items()}
 
+            loss = self.model(q, d).loss
 
-            # init optim
-            self.model_static.train()
-            cost = self.model_static(q, d).loss
-            eps = torch.zeros(cost.size(), requires_grad=True).to(cost.device)
-            loss = torch.sum(cost * eps)
-            loss.backward()
-            self.optimizer.step()
-            self.optimizer.zero_grad()
-
-
-            # pseudo-update
-            loss = self.model_pseudo_updates(q, d).loss
-            eps = torch.ones(loss.size(), requires_grad=True).to(loss.device)
-
-            l_f_meta = torch.sum(loss * eps) 
-            #self.model_pseudo_updates.zero_grad()
-
-            grads = torch.autograd.grad(l_f_meta, 
-                                        [p for n, p in self.model_pseudo_updates.named_buffers() if p.requires_grad], 
-                                        create_graph=True)
+            loss.backward(gradient=torch.ones_like(loss))
             
-            grads = self.get_name2grad(grads, self.model_pseudo_updates.named_buffers())
-        
-            # # Manually update params. grad_fn is not maintained on leaf nodes (nn.Params), hence we replaced all by nn.Buffers
-            # # https://github.com/chenwydj/learning-to-learn-by-gradient-descent-by-gradient-descent
-            # # https://discuss.pytorch.org/t/assign-parameters-to-nn-module-and-have-grad-fn-track-it/62677
-            # for p, g in zip([p for n, p in self.model_pseudo_updates.named_buffers() if p.requires_grad], grads):
-            #     p = p - 2e-5 * g
+        optimizer = torch.optim.AdamW(self.model.parameters(), lr=1e-4)
+        optimizer.step()
+        optimizer.zero_grad()
 
-            deltas = self.get_adam_delta(grads, self.optimizer)
+        with torch.cuda.amp.autocast(dtype=torch.bfloat16): #HACK hardcoded to bf16
+            qv = {k:v.to("cuda") for k, v in qv.items()}
+            dv = {k:v.to("cuda") for k, v in dv.items()}
 
-            self.model_pseudo_updates.update_params(deltas)
+            loss = self.model(qv, dv).loss
 
-            # meta-update
-            vq = {k:v.to("cuda") for k, v in vq.items()}
-            vd = {k:v.to("cuda") for k, v in vd.items()}
-            l_g_meta = self.model_pseudo_updates(vq, vd, per_sample=False).loss
+        final = loss.item()
 
-            grad_eps = torch.autograd.grad(l_g_meta, eps, only_inputs=True)[0]
+        self.model.load_state_dict(self.model_copy.state_dict())
 
-            print(grad_eps)
-
-            #grad_eps = torch.autograd.grad(l_g_meta, eps, only_inputs=True)[0]
-
-            w_tilde = torch.clamp(-grad_eps, min=0)
-            norm_c = torch.sum(w_tilde)
-
-            if norm_c != 0:
-                w = w_tilde / norm_c
-            else:
-                w = w_tilde
-
-            self.optimizer.zero_grad()
-
-            print(w)
-            print(w.shape)
-            exit()
-
-
-            # grads = torch.autograd.grad(
-            #     l_f_meta, 
-            #     [p for n, p in self.model_pseudo_updates.named_buffers() if p.requires_grad], 
-            #     create_graph=True
-            # )
-
-            # grads = self.get_name2grad(grads, self.model_pseudo_updates.named_buffers())
-            # deltas = self.convert_grad2delta(grads, self.optimizer)
-            # self.model_pseudo_updates.update_params(deltas)
-
-            
+        return final
     
     def choose_negatives(self, query: int, n: int) -> list[str]:
         positive_id = self.qid2pos[query][0]
         negative_ids = self.qid2negs[query]
+        
+        self.qid2samplescores[query] = []
+        samples = []
 
-        positive_text = self.did2text[positive_id]
-        negative_texts = [self.did2text[did] for did in negative_ids]
-        query_text = self.qid2text[query]
+        # Taking 5 independent samples
+        for _ in range(5):
+            sample = random.sample(negative_ids, n)
+            samples.append(sample)
 
-        queries = [query_text]
-        documents = [positive_text]
-        for neg in negative_texts:
-            documents.append(neg)
+        highest_loss = float('-inf')
+        lowest_loss = float('inf')
+        best_sample = None
+        worst_sample = None
 
-        q, d = self.tokenize(queries, documents)
-
-        valid_instances = random.sample(self.valid_samples, 6)
+        valid_instances = random.sample(self.valid_samples, 10)
         v_queries = []
         v_documents = []
         for valid_instance in valid_instances:
@@ -1091,37 +965,48 @@ class MetaHardNegatives(HardNegatives):
             v_documents.append(self.tokenizer.decode(valid_instance["positives"][0]))
             v_documents += self.tokenizer.batch_decode(valid_instance["negatives"][:9])
 
-        vq, vd =  self.tokenize(v_queries, v_documents)
+        qv, dv =  self.tokenize(v_queries, v_documents)
+
+        for sample in samples:
+
+            positive_text = self.did2text[positive_id]
+            negative_texts = [self.did2text[did] for did in sample]
 
 
-        self.init_optimizer()
-        self.pseudo_update(q, d, vq, vd)
+            query_text = self.qid2text[query]
 
-        print("did pseudo update")
-        exit()
+            queries = [query_text]
+            documents = [positive_text] + negative_texts
 
-        _, top_indices = torch.topk(dot_prods, k=n)
-        probabilities = torch.nn.functional.softmax(dot_prods, dim=0)
+            q, d = self.tokenize(queries, documents)
 
-        chosen_negatives_topk = []
+            valid_loss = self.get_grad(q, d, qv, dv)
 
-        for index in top_indices.tolist():
-            negative_id = negative_ids[index]
-            chosen_negatives_topk.append(negative_id)
+            info_to_log = [sample, valid_loss]
+            self.qid2samplescores[query].append(info_to_log)
 
-        chosen_negatives_sample = random.choices(negative_ids, weights=probabilities, k=n)
+            if valid_loss > highest_loss:
+                highest_loss = valid_loss
+                worst_sample = sample
+            if valid_loss < lowest_loss:
+                lowest_loss = valid_loss
+                best_sample = sample
 
-        return [chosen_negatives_sample, chosen_negatives_topk]
+        return best_sample, worst_sample
     
-
-
     def sample_hard_negatives(self, n, outpath):
         logger.info(f"Sampling started.")
-        with open(outpath+"_topk", 'w') as h1, \
-            open(outpath+"_sample", 'w') as h2:
+
+        self.qid2samplescores = {}
+
+        with open(outpath+"_group_level_best", 'w') as h1, \
+            open(outpath+"_group_level_worst", 'w') as h2:
                 for query in tqdm(self.qid2negs):
                     
-                    chosen_negatives_sample, chosen_negatives_topk = self.choose_negatives(query, n)
+                    best, worst = self.choose_negatives(query, n)
                     
-                    h1.write(f"{query}\t{','.join(chosen_negatives_topk)}\n") 
-                    h2.write(f"{query}\t{','.join(chosen_negatives_sample)}\n")
+                    h1.write(f"{query}\t{','.join(best)}\n") 
+                    h2.write(f"{query}\t{','.join(worst)}\n")
+
+        with open(outpath + "_log.pkl", 'wb') as h:
+            pickle.dump(self.qid2samplescores, h, protocol=pickle.HIGHEST_PROTOCOL)

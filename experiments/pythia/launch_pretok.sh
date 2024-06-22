@@ -6,7 +6,7 @@
 #SBATCH --cpus-per-task=12
 #SBATCH --mem=100G
 #SBATCH --time=1-00:00:00
-#SBATCH --exclude=babel-8-3,babel-11-25
+#SBATCH --exclude=babel-4-36,babel-8-3,babel-4-28
 
 export TRANSFORMERS_CACHE=/data/datasets/hf_cache
 eval "$(conda shell.bash hook)"
@@ -16,6 +16,7 @@ module load cuda-11.8
 trained_model_name=$1
 save_pretok=$2
 negative_file=$3
+n_val=$4
 
 text_length=1024
 
@@ -45,7 +46,7 @@ cat $initial_data_save_folder/split*.jsonl > $initial_data_save_folder/full.json
 rm $initial_data_save_folder/split*.jsonl
 
 line_count=$(wc -l $initial_data_save_folder/full.jsonl | awk '{print $1}')
-n_val=1000
+
 n_train=$((line_count - n_val))
 
 echo $n_train

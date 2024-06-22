@@ -13,7 +13,7 @@ eval "$(conda shell.bash hook)"
 conda activate tevatron
 module load cuda-11.8
 
-model=pythia-160m-marco-docs-bow-ct-pretrain-bs128-20pc-sample-less-negs-triplet-topk
+model=pythia-160m-1024-marco-docs-bow-contrastive-pretrain
 
-cat /data/user_data/jmcoelho/embeddings/marco_docs/$model/20pc-sample-run-splits/less-opacus-triplet/*_topk > /data/user_data/jmcoelho/embeddings/marco_docs/$model/20pc-sample-run-splits/less-opacus-triplet/hardnegs_less_opacus.20.pc.full.topk
-cat /data/user_data/jmcoelho/embeddings/marco_docs/$model/20pc-sample-run-splits/less-opacus-triplet/*_sample_t1 > /data/user_data/jmcoelho/embeddings/marco_docs/$model/20pc-sample-run-splits/less-opacus-triplet/hardnegs_less_opacus.20.pc.full.t1
+cat /data/user_data/jmcoelho/embeddings/marco_docs/$model/group_level_valid_orcale/*_best > /data/user_data/jmcoelho/embeddings/marco_docs/$model/group_level_valid_orcale/group_hardnegs_full_best
+cat /data/user_data/jmcoelho/embeddings/marco_docs/$model/group_level_valid_orcale/*_worst > /data/user_data/jmcoelho/embeddings/marco_docs/$model/group_level_valid_orcale/group_hardnegs_full_worst

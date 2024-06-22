@@ -42,7 +42,7 @@ deepspeed --include localhost:0 --master_port $4 --module tevatron.retriever.dri
   --normalize \
   --temperature 0.01 \
   --per_device_train_batch_size 1 \
-  --train_group_size 2 \
+  --train_group_size 10 \
   --learning_rate 1e-5 \
   --query_max_len 32 \
   --passage_max_len 1024 \

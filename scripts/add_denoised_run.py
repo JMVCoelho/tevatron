@@ -32,9 +32,9 @@ qid2pos = load_qrels("/data/user_data/jmcoelho/datasets/marco/documents/qrels.tr
 # random_run = "/data/user_data/jmcoelho/embeddings/marco_docs/pythia-160m-marco-docs-bow-ct-pretrain-bs128-20pc-sample-less-negs-triplet-topk/random_train_run_splits/random/20pc.tain+val.random.txt"
 
 
-run="/data/user_data/jmcoelho/embeddings/marco_docs/pythia-160m-marco-docs-bow-ct-pretrain-bs128-all-queries-less-5-group-level-best/group_level/group_hardnegs_full_best"
+run="/data/user_data/jmcoelho/embeddings/marco_docs/pythia-160m-marco-docs-bow-ct-pretrain-bs256-all-queries-valid-5-group-level-best/group_level_valid_orcale/group_hardnegs_full_worst"
 out=f"delete" 
-full_run = "/data/user_data/jmcoelho/embeddings/marco_docs/pythia-160m-marco-docs-bow-ct-pretrain-bs128-all-queries-less-5-group-level-best/run.train.txt"
+full_run = "/data/user_data/jmcoelho/embeddings/marco_docs/pythia-160m-marco-docs-bow-ct-pretrain-bs256-all-queries-valid-5-group-level-best/run.train.txt"
 
 add_random=False
 random_run = "/data/user_data/jmcoelho/embeddings/marco_docs/pythia-160m-marco-docs-bow-ct-pretrain-bs128-20pc-sample-less-negs-triplet-topk/random_train_run_splits/random/20pc.tain+val.random.txt"
@@ -82,24 +82,7 @@ with open(full_run, 'r') as h:
             i+=1
 
 
-difficulty_levels = list(qid2ranks.values())
-difficulty_levels = [item for sublist in difficulty_levels for item in (sublist if isinstance(sublist, list) else [sublist])]
-
-# Calculate summary statistics
-mean_difficulty = np.mean(difficulty_levels)
-var_difficulty = np.var(difficulty_levels)
-
-
 print(counter)
-plt.figure(figsize=(10, 6))
-plt.boxplot(difficulty_levels)  # You can change to plt.violinplot() for a violin plot
-plt.xlabel('Query ID')
-plt.ylabel('Negative Difficulty Level')
-plt.title('Distribution of Negative Rank Across Queries - Ep2, best')
-plt.text(0.95, 0.95, f'Mean: {mean_difficulty:.2f}\nVariance: {var_difficulty}\n',
-         horizontalalignment='right', verticalalignment='top', transform=plt.gca().transAxes)
-
-plt.savefig('negative_difficulty_plot_worst.png')
 
 exit()
 

@@ -3,7 +3,7 @@
 #SBATCH --output=logs/%x-%j.out
 #SBATCH -e logs/%x-%j.err
 #SBATCH --partition=general
-#SBATCH --gres=gpu:A6000:2
+#SBATCH --gres=gpu:A6000:4
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=32G
 #SBATCH --time=2-00:00:00
@@ -25,7 +25,7 @@ training_data=$2
 model_to_train=$3
 port=$4
 
-deepspeed --include localhost:0,1 --master_port $4 --module tevatron.retriever.driver.train \
+deepspeed --include localhost:0,1,2,3 --master_port $4 --module tevatron.retriever.driver.train \
   --deepspeed deepspeed/ds_zero3_config.json \
   --output_dir /data/user_data/jmcoelho/models/fine-tuned/$trained_model_name \
   --model_name_or_path /data/user_data/jmcoelho/models/$model_to_train \

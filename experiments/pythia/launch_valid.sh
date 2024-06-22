@@ -19,10 +19,9 @@ module load cuda-11.8
 model_name=$1
 port=$2
 model_to_valid=/data/user_data/jmcoelho/models/fine-tuned/$model_name
-save_grad=/data/user_data/jmcoelho/embeddings/marco_docs/$model_name/valid_grads_bs64_denoised
 
 
-model_valid_data=pythia-160m-marco-docs-bow-ct-pretrain-bs128-20pc-sample-less-negs-triplet-topk
+model_valid_data=pythia-160m-marco-docs-bow-ct-pretrain-bs256-all-queries-valid-5-group-level-best
 
 rm /data/user_data/jmcoelho/models/fine-tuned/$model_name/model.safetensors
 
@@ -30,7 +29,7 @@ deepspeed --include localhost:0 --master_port $port --module tevatron.retriever.
   --deepspeed deepspeed/ds_zero3_config.json \
   --output_dir temp \
   --model_name_or_path $model_to_valid\
-  --dataset_path /data/user_data/jmcoelho/datasets/marco/documents/processed_data/$model_valid_data/random_20_pc_sample_denoised/val.jsonl \
+  --dataset_path /data/user_data/jmcoelho/datasets/marco/documents/processed_data/$model_valid_data/random_all_queries/val.jsonl \
   --dataset_cache_dir /data/datasets/hf_cache \
   --cache_dir /data/datasets/hf_cache \
   --save_steps 1000 \

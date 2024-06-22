@@ -4,8 +4,8 @@
 #SBATCH -e logs/%x-%j.err
 #SBATCH --partition=general
 #SBATCH --gres=gpu:A6000:1
-#SBATCH --cpus-per-task=4
-#SBATCH --mem=50G
+#SBATCH --cpus-per-task=1
+#SBATCH --mem=15G
 #SBATCH --time=2-00:00:00
 #SBATCH --exclude=babel-4-36,babel-8-3,babel-4-28
 
@@ -18,9 +18,7 @@ conda activate tevatron
 module load cuda-11.8
 
 trained_model_name=$1
-shard=$2
 
-echo "running for shard $shard"
 
 EMBEDDING_OUTPUT_DIR=/data/user_data/jmcoelho/embeddings/marco_docs
 mkdir -p $EMBEDDING_OUTPUT_DIR/$trained_model_name
@@ -36,11 +34,17 @@ python -m tevatron.retriever.driver.encode \
   --pooling eos \
   --append_eos_token \
   --normalize \
+  --encode_is_query \
   --per_device_eval_batch_size 300 \
   --query_max_len 32 \
   --passage_max_len 1024 \
-  --dataset_path "/data/user_data/jmcoelho/datasets/marco/documents/corpus_firstp_2048.jsonl" \
-  --add_markers True \
-  --dataset_number_of_shards 4 \
-  --dataset_shard_index ${shard} \
-  --encode_output_path $EMBEDDING_OUTPUT_DIR/$trained_model_name/corpus.${shard}.pkl
+  --dataset_path "/data/user_data/jmcoelho/datasets/marco/documents/1000.valid.query.jsonl" \
+  --encode_output_path $EMBEDDING_OUTPUT_DIR/$trained_model_name/query-val.pkl
+
+  # --dataset_path "/data/user_data/jmcoelho/datasets/marco/documents/10.percent.sample.v3.train.query.filtered.jsonl" \
+  # --encode_output_path $EMBEDDING_OUTPUT_DIR/$trained_model_name/10-percent-sample-query-train-v3.pkl
+
+
+
+
+

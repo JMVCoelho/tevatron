@@ -14,7 +14,7 @@ conda activate tevatron
 
 module load cuda-11.8
 
-trained_model_name=pythia-160m-marco-docs-bow-ct-pretrain-bs128-all-queries-less-5-group-level-best
+trained_model_name=pythia-160m-marco-docs-bow-ct-pretrain-bs256-all-queries-valid-5-group-level-best
 
 EMBEDDING_OUTPUT_DIR=/data/user_data/jmcoelho/embeddings/marco_docs
 mkdir $EMBEDDING_OUTPUT_DIR/$trained_model_name
