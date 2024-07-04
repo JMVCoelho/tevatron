@@ -8,9 +8,9 @@ N_MOMENTUM = 3
 # out = "/data/user_data/jmcoelho/embeddings/marco_docs/pythia-160m-marco-docs-bow-ct-pretrain-bs128-all-queries-less-5-group-level-best/run.train.2.to.1.momentum.txt"
 
 
-full_run_current = "/data/user_data/jmcoelho/embeddings/marco_docs/pythia-160m-marco-docs-bow-ct-pretrain-bs128-all-queries-random-negs-top100/run.train.txt"
+full_run_current = "/data/user_data/jmcoelho/embeddings/marco_docs/pythia-160m-marco-docs-bow-ct-pretrain-bs256-all-queries-10k2-valid-5-group-level-T0.1/run.train.txt"
 full_run_prev = "/data/user_data/jmcoelho/embeddings/marco_docs/pythia-160m-1024-marco-docs-bow-contrastive-pretrain/run.train.txt"
-out = "/data/user_data/jmcoelho/embeddings/marco_docs/pythia-160m-marco-docs-bow-ct-pretrain-bs128-all-queries-random-negs-top100/run.train.2.to.1.momentum.txt"
+out = "/data/user_data/jmcoelho/embeddings/marco_docs/pythia-160m-marco-docs-bow-ct-pretrain-bs256-all-queries-10k2-valid-5-group-level-T0.1/run.train.2.to.1.momentum.txt"
 
 
 qid2prev_negs = {}

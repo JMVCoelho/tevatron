@@ -38,12 +38,27 @@ python -m tevatron.retriever.driver.encode \
   --per_device_eval_batch_size 300 \
   --query_max_len 32 \
   --passage_max_len 1024 \
-  --dataset_path "/data/user_data/jmcoelho/datasets/marco/documents/1000.valid.query.jsonl" \
-  --encode_output_path $EMBEDDING_OUTPUT_DIR/$trained_model_name/query-val.pkl
+  --dataset_path "/data/user_data/jmcoelho/datasets/marco/documents/5000.valid.1.query.jsonl" \
+  --encode_output_path $EMBEDDING_OUTPUT_DIR/$trained_model_name/query-val-1.pkl
 
-  # --dataset_path "/data/user_data/jmcoelho/datasets/marco/documents/10.percent.sample.v3.train.query.filtered.jsonl" \
-  # --encode_output_path $EMBEDDING_OUTPUT_DIR/$trained_model_name/10-percent-sample-query-train-v3.pkl
 
+python -m tevatron.retriever.driver.encode \
+  --output_dir=temp \
+  --model_name_or_path /data/user_data/jmcoelho/models/fine-tuned/$trained_model_name/ \
+  --dataset_cache_dir /data/datasets/hf_cache \
+  --cache_dir /data/datasets/hf_cache \
+  --query_prefix "" \
+  --passage_prefix "" \
+  --bf16 \
+  --pooling eos \
+  --append_eos_token \
+  --normalize \
+  --encode_is_query \
+  --per_device_eval_batch_size 300 \
+  --query_max_len 32 \
+  --passage_max_len 1024 \
+  --dataset_path "/data/user_data/jmcoelho/datasets/marco/documents/5000.valid.2.query.jsonl" \
+  --encode_output_path $EMBEDDING_OUTPUT_DIR/$trained_model_name/query-val-2.pkl
 
 
 

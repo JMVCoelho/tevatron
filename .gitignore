@@ -21,3 +21,6 @@ hardnegs_less_opacus.20.pc.1.txt_dotprods_ep2_denoised.pkl
 hardnegs_less_opacus.full.qs.0.txt_dotprods.1pc.gaussian.noise.pkl
 hardnegs_less_opacus.full.qs.0.txt_dotprods.5pc.gaussian.noise.pkl
 hardnegs_less_opacus.full.qs.0.txt_dotprods.no.noise.pkl
+datamodel_test_no_std.tsv
+datamodel_train_no_std.tsv
+datamodel_val_no_std.tsv

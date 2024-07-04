@@ -1,7 +1,7 @@
 import faiss
 import numpy as np
 from tqdm import tqdm
-
+import torch
 
 import logging
 
@@ -18,6 +18,11 @@ class FaissFlatSearcher:
         #     index = faiss.index_cpu_to_gpu(res, 0, index)
         self.index = index
 
+    def move_index_to_gpu(self):
+        logger.info("Moving index to GPU(s)")
+        res = faiss.StandardGpuResources()
+        self.index = faiss.index_cpu_to_gpu(res, 0, self.index)
+        
     def add(self, p_reps: np.ndarray):
         self.index.add(p_reps)
 

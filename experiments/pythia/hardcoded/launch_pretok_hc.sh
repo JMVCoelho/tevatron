@@ -13,17 +13,22 @@ eval "$(conda shell.bash hook)"
 conda activate tevatron
 module load cuda-11.8
 
-trained_model_name=pythia-160m-marco-docs-bow-ct-pretrain-bs256-all-queries-valid-5-group-level-best
-save_pretok=/data/user_data/jmcoelho/datasets/marco/documents/processed_data/$trained_model_name/random_all_queries_5k_valid
-negative_file=/data/user_data/jmcoelho/embeddings/marco_docs/$trained_model_name/random_train_run_splits/random/full.queries.train+val.random.top100.txt
+trained_model_name=pythia-160m-marco-docs-bow-ct-pretrain-bs256-all-queries-10k2-valid-dev-overfit
+prefix=fine-tuned
+save_pretok=/data/user_data/jmcoelho/datasets/marco/documents/processed_data/$trained_model_name/dev_overfit
+negative_file=/data/user_data/jmcoelho/embeddings/marco_docs/$trained_model_name/random_train_run_splits/random/full.queries.dev.top100.txt
 
 text_length=1024
 
 data_path=/data/user_data/jmcoelho/datasets/marco/documents
 
-train_qrels=$data_path/qrels.train.tsv
+# train_qrels=$data_path/qrels.train.tsv
+# corpus=$data_path/corpus_firstp_2048.tsv
+# train_queries=$data_path/train.query.filtered.txt
+
+train_qrels=$data_path/qrels.dev.tsv
 corpus=$data_path/corpus_firstp_2048.tsv
-train_queries=$data_path/train.query.filtered.txt
+train_queries=$data_path/dev.query.txt
 
 initial_data_save_folder=$save_pretok
 
@@ -31,7 +36,7 @@ initial_data_save_folder=$save_pretok
 mkdir -p $initial_data_save_folder
 
 python scripts/pretokenize.py \
-   --tokenizer_name /data/user_data/jmcoelho/models/fine-tuned/$trained_model_name \
+   --tokenizer_name /data/user_data/jmcoelho/models/$prefix/$trained_model_name \
    --negative_file $negative_file\
    --qrels $train_qrels  \
    --queries $train_queries  \
@@ -41,16 +46,25 @@ python scripts/pretokenize.py \
    --doc_template "Title: <title> Text: <text>" \
    --n_sample 9
 
+cat $initial_data_save_folder/split*.jsonl > $initial_data_save_folder/dev.jsonl
+rm $initial_data_save_folder/split*.jsonl
+exit
+
+
 cat $initial_data_save_folder/split*.jsonl > $initial_data_save_folder/full.jsonl
 rm $initial_data_save_folder/split*.jsonl
 
 line_count=$(wc -l $initial_data_save_folder/full.jsonl | awk '{print $1}')
-n_val=5000
+n_val=10000
+n_subsets=5000
 n_train=$((line_count - n_val))
 
 echo $n_train
 
 tail -n $n_val $initial_data_save_folder/full.jsonl > $initial_data_save_folder/val.jsonl
 head -n $n_train $initial_data_save_folder/full.jsonl > $initial_data_save_folder/train.jsonl
+
+head -n $n_subsets $initial_data_save_folder/val.jsonl > $initial_data_save_folder/val_1.jsonl
+tail -n $n_subsets $initial_data_save_folder/val.jsonl > $initial_data_save_folder/val_2.jsonl
 
 rm $initial_data_save_folder/full.jsonl
