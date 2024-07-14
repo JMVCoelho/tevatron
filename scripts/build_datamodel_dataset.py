@@ -4,10 +4,10 @@ import pickle
 
 random.seed(17121998)
 
-TRAIN_SIZE = 91895
-TEST_VAL_SIZE = 11400
+TRAIN_SIZE = 1600
+TEST_VAL_SIZE = 200
 
-log_path = "/data/user_data/jmcoelho/embeddings/marco_docs/pythia-160m-marco-docs-bow-ct-pretrain-bs256-all-queries-10k2-valid-5-group-level-T1/group_level_10000_two_valid_orcale"
+log_path = "/data/user_data/jmcoelho/embeddings/marco_docs/pythia-160m-marco-docs-bow-ct-pretrain-bs256-all-queries-10k2-valid-5-group-level-T0.1/group_level_10000_two_valid_orcale_momentum_single_query_2k"
 
 def standardize_list(input_list):
     mu = sum(input_list) / len(input_list)
@@ -45,9 +45,9 @@ with open("/data/user_data/jmcoelho/datasets/marco/documents/qrels.train.tsv", '
 
 all_labels = []
 k = 0
-with open(f"{log_path}/datamodel_train_binary.tsv", 'w') as out1, \
-      open(f"{log_path}/datamodel_val_binary.tsv", 'w') as out2, \
-        open(f"{log_path}/datamodel_test_binary.tsv", 'w') as out3:
+with open(f"{log_path}/datamodel_train.tsv", 'w') as out1, \
+      open(f"{log_path}/datamodel_val.tsv", 'w') as out2, \
+        open(f"{log_path}/datamodel_test.tsv", 'w') as out3:
             
             with open(f"{log_path}/group_hardnegs_0_log.pkl", 'rb') as h:
                 data = pickle.load(h)
@@ -55,7 +55,6 @@ with open(f"{log_path}/datamodel_train_binary.tsv", 'w') as out1, \
                 count1 = 0  # for out1 (train)
                 count2 = 0  # for out2 (val)
                 
-
 
                 #GLOBAL STD
                 # for query in data:
@@ -92,32 +91,9 @@ with open(f"{log_path}/datamodel_train_binary.tsv", 'w') as out1, \
 
                 #QLEVEL STD
 
-                # for query in data:
-                #     samples = data[query]
-                #     labels = standardize_list([float(s[1]) for s in samples])
-                #     document_ids = [s[0] for s in samples] # negative docs
-
-                #     for doc_ids, label in zip(document_ids, labels):
-                        
-                #         doc_ids.insert(0, QID2POS[query][0]) # add positive
-
-                #         if count1 < TRAIN_SIZE:
-                #             out_file = out1
-                #             count1 += 1
-                #         elif count2 < TEST_VAL_SIZE:
-                #             out_file = out2
-                #             count2 += 1
-                #         else:
-                #             out_file = out3
-                
-                #         out_file.write(f"{query}\t{','.join(doc_ids)}\t{label}\n")
-
-            
-                # Binary cls 
-
                 for query in data:
                     samples = data[query]
-                    labels = to_binary_labels([float(s[1]) for s in samples])
+                    labels = standardize_list([float(s[1]) for s in samples])
                     document_ids = [s[0] for s in samples] # negative docs
 
                     for doc_ids, label in zip(document_ids, labels):
@@ -134,3 +110,26 @@ with open(f"{log_path}/datamodel_train_binary.tsv", 'w') as out1, \
                             out_file = out3
                 
                         out_file.write(f"{query}\t{','.join(doc_ids)}\t{label}\n")
+
+            
+                # Binary cls 
+
+                # for query in data:
+                #     samples = data[query]
+                #     labels = to_binary_labels([float(s[1]) for s in samples])
+                #     document_ids = [s[0] for s in samples] # negative docs
+
+                #     for doc_ids, label in zip(document_ids, labels):
+                        
+                #         doc_ids.insert(0, QID2POS[query][0]) # add positive
+
+                #         if count1 < TRAIN_SIZE:
+                #             out_file = out1
+                #             count1 += 1
+                #         elif count2 < TEST_VAL_SIZE:
+                #             out_file = out2
+                #             count2 += 1
+                #         else:
+                #             out_file = out3
+                
+                #         out_file.write(f"{query}\t{','.join(doc_ids)}\t{label}\n")

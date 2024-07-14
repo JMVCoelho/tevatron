@@ -13,10 +13,10 @@ eval "$(conda shell.bash hook)"
 conda activate tevatron
 module load cuda-11.8
 
-model=pythia-160m-marco-docs-bow-ct-pretrain-bs256-all-queries-10k2-valid-dev-overfit
+model=pythia-160m-1024-marco-docs-bow-contrastive-pretrain
 
-cat /data/user_data/jmcoelho/embeddings/marco_docs/$model/group_level_10000_two_valid_orcale_dev_overfit/*_best > /data/user_data/jmcoelho/embeddings/marco_docs/$model/group_level_10000_two_valid_orcale_dev_overfit/group_hardnegs_full_best
-cat /data/user_data/jmcoelho/embeddings/marco_docs/$model/group_level_10000_two_valid_orcale_dev_overfit/*_worst > /data/user_data/jmcoelho/embeddings/marco_docs/$model/group_level_10000_two_valid_orcale_dev_overfit/group_hardnegs_full_worst
+cat /data/user_data/jmcoelho/embeddings/marco_docs/$model/group_level_10000_two_valid_orcale_momentum_10samples/*_best > /data/user_data/jmcoelho/embeddings/marco_docs/$model/group_level_10000_two_valid_orcale_momentum_10samples/group_hardnegs_full_best
+cat /data/user_data/jmcoelho/embeddings/marco_docs/$model/group_level_10000_two_valid_orcale_momentum_10samples/*_worst > /data/user_data/jmcoelho/embeddings/marco_docs/$model/group_level_10000_two_valid_orcale_momentum_10samples/group_hardnegs_full_worst
 
 
-#python /home/jmcoelho/tevatron/scripts/build_run_from_sampling_log.py 
+python /home/jmcoelho/tevatron/scripts/build_run_from_sampling_log.py 

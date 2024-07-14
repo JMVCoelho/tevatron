@@ -1,0 +1,98 @@
+#### MLP
+
+[I 2024-07-13 21:44:05,910] A new study created in memory with name: no-name-fc7c0e87-9d99-40be-b9cb-0309d63c272d
+/home/jmcoelho/miniconda3/envs/tevatron/lib/python3.10/site-packages/sklearn/neural_network/_multilayer_perceptron.py:691: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (200) reached and the optimization hasn't converged yet.
+  warnings.warn(
+[I 2024-07-13 21:44:08,791] Trial 0 finished with values: [0.3916049745283104, 0.77726225334257] and parameters: {'hidden_layer_sizes': 152, 'activation': 'logistic', 'alpha': 0.002172842172720788}. 
+[I 2024-07-13 21:44:08,928] Trial 1 finished with values: [0.4295090682100687, 0.7456098799570451] and parameters: {'hidden_layer_sizes': 82, 'activation': 'identity', 'alpha': 1.59507440001279e-05}. 
+[I 2024-07-13 21:44:09,648] Trial 2 finished with values: [0.6353460440300817, 0.6543334289593599] and parameters: {'hidden_layer_sizes': 141, 'activation': 'relu', 'alpha': 1.4636829064695832e-05}. 
+[I 2024-07-13 21:44:10,375] Trial 3 finished with values: [0.658259388798229, 0.6279968060349658] and parameters: {'hidden_layer_sizes': 122, 'activation': 'relu', 'alpha': 0.0009616548125817957}. 
+[I 2024-07-13 21:44:11,191] Trial 4 finished with values: [0.5852329959124446, 0.671327709701839] and parameters: {'hidden_layer_sizes': 158, 'activation': 'relu', 'alpha': 8.095380973188508e-05}. 
+[I 2024-07-13 21:44:11,998] Trial 5 finished with values: [0.554406202952464, 0.6801434143185038] and parameters: {'hidden_layer_sizes': 196, 'activation': 'relu', 'alpha': 0.00035850337775267325}. 
+/home/jmcoelho/miniconda3/envs/tevatron/lib/python3.10/site-packages/sklearn/neural_network/_multilayer_perceptron.py:691: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (200) reached and the optimization hasn't converged yet.
+  warnings.warn(
+[I 2024-07-13 21:44:14,179] Trial 6 finished with values: [0.39812197952804035, 0.7728209901860401] and parameters: {'hidden_layer_sizes': 104, 'activation': 'logistic', 'alpha': 0.0006472715067976657}. 
+[I 2024-07-13 21:44:14,315] Trial 7 finished with values: [0.4295877660162129, 0.7465494337729709] and parameters: {'hidden_layer_sizes': 70, 'activation': 'identity', 'alpha': 0.0007926579528270544}. 
+[I 2024-07-13 21:44:15,069] Trial 8 finished with values: [0.6068947697253714, 0.6466793390161195] and parameters: {'hidden_layer_sizes': 146, 'activation': 'relu', 'alpha': 0.0008530604652459406}. 
+[I 2024-07-13 21:44:15,307] Trial 9 finished with values: [0.42727531866953256, 0.7467222865204584] and parameters: {'hidden_layer_sizes': 183, 'activation': 'identity', 'alpha': 7.793385624040074e-05}. 
+[I 2024-07-13 21:44:15,511] Trial 10 finished with values: [0.42105750286357363, 0.7525595233242415] and parameters: {'hidden_layer_sizes': 141, 'activation': 'identity', 'alpha': 0.009595275394113555}. 
+[I 2024-07-13 21:44:15,649] Trial 11 finished with values: [0.4279654748142322, 0.7477096522265847] and parameters: {'hidden_layer_sizes': 60, 'activation': 'identity', 'alpha': 0.006809682078691766}. 
+[I 2024-07-13 21:44:15,879] Trial 12 finished with values: [0.4372720186420984, 0.742230347808954] and parameters: {'hidden_layer_sizes': 186, 'activation': 'identity', 'alpha': 2.4074142352449514e-05}. 
+[I 2024-07-13 21:44:16,643] Trial 13 finished with values: [0.5574037163501426, 0.6835779061077484] and parameters: {'hidden_layer_sizes': 123, 'activation': 'relu', 'alpha': 0.0007579490464597102}. 
+[I 2024-07-13 21:44:16,863] Trial 14 finished with values: [0.4278508118546571, 0.7475656328978989] and parameters: {'hidden_layer_sizes': 145, 'activation': 'identity', 'alpha': 0.0003986580141378384}. 
+[I 2024-07-13 21:44:17,773] Trial 15 finished with values: [0.5351854904530611, 0.6838986197631861] and parameters: {'hidden_layer_sizes': 89, 'activation': 'tanh', 'alpha': 0.0002667186854196958}. 
+[I 2024-07-13 21:44:17,971] Trial 16 finished with values: [0.44169622281499554, 0.7410734751657977] and parameters: {'hidden_layer_sizes': 159, 'activation': 'identity', 'alpha': 5.887993119272546e-05}. 
+[I 2024-07-13 21:44:18,732] Trial 17 finished with values: [0.5740897221305399, 0.6749674209435659] and parameters: {'hidden_layer_sizes': 145, 'activation': 'relu', 'alpha': 0.00039996237538660496}. 
+[I 2024-07-13 21:44:18,859] Trial 18 finished with values: [0.42909919427183424, 0.7466708047228855] and parameters: {'hidden_layer_sizes': 58, 'activation': 'identity', 'alpha': 2.4397687684549524e-05}. 
+[I 2024-07-13 21:44:18,986] Trial 19 finished with values: [0.4290917409521293, 0.746671091513163] and parameters: {'hidden_layer_sizes': 58, 'activation': 'identity', 'alpha': 0.006650791958834657}. 
+[FrozenTrial(number=0, state=TrialState.COMPLETE, values=[0.3916049745283104, 0.77726225334257], datetime_start=datetime.datetime(2024, 7, 13, 21, 44, 5, 911188), datetime_complete=datetime.datetime(2024, 7, 13, 21, 44, 8, 791468), params={'hidden_layer_sizes': 152, 'activation': 'logistic', 'alpha': 0.002172842172720788}, user_attrs={}, system_attrs={'nsga2:generation': 0}, intermediate_values={}, distributions={'hidden_layer_sizes': IntDistribution(high=200, log=True, low=50, step=1), 'activation': CategoricalDistribution(choices=('identity', 'logistic', 'tanh', 'relu')), 'alpha': FloatDistribution(high=0.01, log=True, low=1e-05, step=None)}, trial_id=0, value=None)]
+
+#### LASSO
+
+[W 2024-07-13 21:48:53,125] Trial 0 failed with parameters: {'alpha': 0.9695205710770629} because of the following error: The value nan is not acceptable.
+[W 2024-07-13 21:48:53,125] Trial 0 failed with value (0.9494144293767829, nan).
+/home/jmcoelho/tevatron/scripts/train_datamodel_regression_lasso.py:137: ConstantInputWarning: An input array is constant; the correlation coefficient is not defined.
+  val_corr, _ = pearsonr(y_val, y_pred)
+[W 2024-07-13 21:48:53,130] Trial 1 failed with parameters: {'alpha': 0.6225852129431853} because of the following error: The value nan is not acceptable.
+[W 2024-07-13 21:48:53,131] Trial 1 failed with value (0.9494144293767829, nan).
+[I 2024-07-13 21:48:53,137] Trial 2 finished with values: [0.8508201122205541, 0.47152514866793654] and parameters: {'alpha': 0.36391326696718834}. 
+[I 2024-07-13 21:48:53,143] Trial 3 finished with values: [0.5039467216931649, 0.6925344714412206] and parameters: {'alpha': 0.07420222232117205}. 
+[I 2024-07-13 21:48:53,148] Trial 4 finished with values: [0.7295720245081212, 0.5339929270944941] and parameters: {'alpha': 0.21529669712410016}. 
+[I 2024-07-13 21:48:53,154] Trial 5 finished with values: [0.4845310292456501, 0.7049377416268955] and parameters: {'alpha': 0.06299296545645203}. 
+[I 2024-07-13 21:48:53,160] Trial 6 finished with values: [0.5600089598892088, 0.6530154919173681] and parameters: {'alpha': 0.10163430196894743}. 
+/home/jmcoelho/tevatron/scripts/train_datamodel_regression_lasso.py:137: ConstantInputWarning: An input array is constant; the correlation coefficient is not defined.
+  val_corr, _ = pearsonr(y_val, y_pred)
+[W 2024-07-13 21:48:53,165] Trial 7 failed with parameters: {'alpha': 0.6975831480610112} because of the following error: The value nan is not acceptable.
+[W 2024-07-13 21:48:53,166] Trial 7 failed with value (0.9494144293767829, nan).
+/home/jmcoelho/tevatron/scripts/train_datamodel_regression_lasso.py:137: ConstantInputWarning: An input array is constant; the correlation coefficient is not defined.
+  val_corr, _ = pearsonr(y_val, y_pred)
+[W 2024-07-13 21:48:53,170] Trial 8 failed with parameters: {'alpha': 0.5728934094290022} because of the following error: The value nan is not acceptable.
+[W 2024-07-13 21:48:53,171] Trial 8 failed with value (0.9494144293767829, nan).
+[I 2024-07-13 21:48:53,176] Trial 9 finished with values: [0.8012373340760067, 0.47152514866793654] and parameters: {'alpha': 0.2830611028224361}. 
+[I 2024-07-13 21:48:53,182] Trial 10 finished with values: [0.7851917597416787, 0.47733488612177655] and parameters: {'alpha': 0.25685742370288633}. 
+/home/jmcoelho/tevatron/scripts/train_datamodel_regression_lasso.py:137: ConstantInputWarning: An input array is constant; the correlation coefficient is not defined.
+  val_corr, _ = pearsonr(y_val, y_pred)
+[W 2024-07-13 21:48:53,187] Trial 11 failed with parameters: {'alpha': 0.9932718507944994} because of the following error: The value nan is not acceptable.
+[W 2024-07-13 21:48:53,187] Trial 11 failed with value (0.9494144293767829, nan).
+[I 2024-07-13 21:48:53,193] Trial 12 finished with values: [0.46237377675114716, 0.7188445514360419] and parameters: {'alpha': 0.04899864166744189}. 
+[I 2024-07-13 21:48:53,199] Trial 13 finished with values: [0.524504053941927, 0.6785876347267243] and parameters: {'alpha': 0.08464490395797994}. 
+/home/jmcoelho/tevatron/scripts/train_datamodel_regression_lasso.py:137: ConstantInputWarning: An input array is constant; the correlation coefficient is not defined.
+  val_corr, _ = pearsonr(y_val, y_pred)
+[W 2024-07-13 21:48:53,204] Trial 14 failed with parameters: {'alpha': 0.6148510170536793} because of the following error: The value nan is not acceptable.
+[W 2024-07-13 21:48:53,204] Trial 14 failed with value (0.9494144293767829, nan).
+[I 2024-07-13 21:48:53,210] Trial 15 finished with values: [0.9244737107715116, 0.47152514866793654] and parameters: {'alpha': 0.45586910617646165}. 
+/home/jmcoelho/tevatron/scripts/train_datamodel_regression_lasso.py:137: ConstantInputWarning: An input array is constant; the correlation coefficient is not defined.
+  val_corr, _ = pearsonr(y_val, y_pred)
+[W 2024-07-13 21:48:53,215] Trial 16 failed with parameters: {'alpha': 0.6977825714749503} because of the following error: The value nan is not acceptable.
+[W 2024-07-13 21:48:53,215] Trial 16 failed with value (0.9494144293767829, nan).
+/home/jmcoelho/tevatron/scripts/train_datamodel_regression_lasso.py:137: ConstantInputWarning: An input array is constant; the correlation coefficient is not defined.
+  val_corr, _ = pearsonr(y_val, y_pred)
+[W 2024-07-13 21:48:53,220] Trial 17 failed with parameters: {'alpha': 0.531303398000977} because of the following error: The value nan is not acceptable.
+[W 2024-07-13 21:48:53,220] Trial 17 failed with value (0.9494144293767829, nan).
+[I 2024-07-13 21:48:53,226] Trial 18 finished with values: [0.6240711690471192, 0.6073274474753017] and parameters: {'alpha': 0.13951627966972943}. 
+[I 2024-07-13 21:48:53,231] Trial 19 finished with values: [0.8353583973498595, 0.47152514866793654] and parameters: {'alpha': 0.34104910927697524}. 
+[FrozenTrial(number=12, state=TrialState.COMPLETE, values=[0.46237377675114716, 0.7188445514360419], datetime_start=datetime.datetime(2024, 7, 13, 21, 48, 53, 187822), datetime_complete=datetime.datetime(2024, 7, 13, 21, 48, 53, 193436), params={'alpha': 0.04899864166744189}, user_attrs={}, system_attrs={'nsga2:generation': 0}, intermediate_values={}, distributions={'alpha': FloatDistribution(high=1.0, log=False, low=0.01, step=None)}, trial_id=12, value=None)]
+
+#### RIDGE
+
+[I 2024-07-13 21:51:21,860] Trial 0 finished with values: [0.4254992679984026, 0.7489130826312773] and parameters: {'alpha': 0.073453259661226}. 
+[I 2024-07-13 21:51:22,029] Trial 1 finished with values: [0.425423625106217, 0.7489198854333237] and parameters: {'alpha': 0.7965018087890703}. 
+[I 2024-07-13 21:51:22,098] Trial 2 finished with values: [0.42548385936835303, 0.7489144667920561] and parameters: {'alpha': 0.22042460484580317}. 
+[I 2024-07-13 21:51:22,126] Trial 3 finished with values: [0.4254662895044676, 0.7489160460844191] and parameters: {'alpha': 0.3882066845740199}. 
+[I 2024-07-13 21:51:22,154] Trial 4 finished with values: [0.4254262730236417, 0.7489196469665433] and parameters: {'alpha': 0.7711252484686547}. 
+[I 2024-07-13 21:51:22,182] Trial 5 finished with values: [0.4254962365895631, 0.748913354879597] and parameters: {'alpha': 0.10235489876599892}. 
+[I 2024-07-13 21:51:22,210] Trial 6 finished with values: [0.4254226899991518, 0.7489199696531871] and parameters: {'alpha': 0.8054646405817164}. 
+[I 2024-07-13 21:51:22,351] Trial 7 finished with values: [0.4254095966467306, 0.7489211492147027] and parameters: {'alpha': 0.9310250027100697}. 
+[I 2024-07-13 21:51:22,472] Trial 8 finished with values: [0.4254590412035812, 0.7489166979155853] and parameters: {'alpha': 0.4574848847291549}. 
+[I 2024-07-13 21:51:22,498] Trial 9 finished with values: [0.42541834701564185, 0.7489203608408991] and parameters: {'alpha': 0.847099202764853}. 
+[I 2024-07-13 21:51:22,524] Trial 10 finished with values: [0.4254206213910156, 0.7489201559718517] and parameters: {'alpha': 0.8252940029115929}. 
+[I 2024-07-13 21:51:22,550] Trial 11 finished with values: [0.4254899419478397, 0.7489139202960003] and parameters: {'alpha': 0.1623882528895453}. 
+[I 2024-07-13 21:51:22,573] Trial 12 finished with values: [0.42543527981503, 0.7489188360113437] and parameters: {'alpha': 0.684843748904075}. 
+[I 2024-07-13 21:51:22,677] Trial 13 finished with values: [0.4254374047366328, 0.7489186447279049] and parameters: {'alpha': 0.6644959266578826}. 
+[I 2024-07-13 21:51:22,703] Trial 14 finished with values: [0.42541578200125874, 0.748920591911244] and parameters: {'alpha': 0.8716951108844718}. 
+[I 2024-07-13 21:51:22,729] Trial 15 finished with values: [0.42544443108369895, 0.7489180123331758] and parameters: {'alpha': 0.5972349973769587}. 
+[I 2024-07-13 21:51:22,755] Trial 16 finished with values: [0.42547528343412666, 0.7489152375205537] and parameters: {'alpha': 0.30229366308956834}. 
+[I 2024-07-13 21:51:22,852] Trial 17 finished with values: [0.42542051903412825, 0.7489201651914762] and parameters: {'alpha': 0.8262752565566522}. 
+[I 2024-07-13 21:51:22,878] Trial 18 finished with values: [0.42550557242517045, 0.7489125165359352] and parameters: {'alpha': 0.013366350252981968}. 
+[I 2024-07-13 21:51:22,904] Trial 19 finished with values: [0.42543188923006253, 0.7489191412607381] and parameters: {'alpha': 0.7173177001299056}. 
+[FrozenTrial(number=7, state=TrialState.COMPLETE, values=[0.4254095966467306, 0.7489211492147027], datetime_start=datetime.datetime(2024, 7, 13, 21, 51, 22, 210598), datetime_complete=datetime.datetime(2024, 7, 13, 21, 51, 22, 351310), params={'alpha': 0.9310250027100697}, user_attrs={}, system_attrs={'nsga2:generation': 0}, intermediate_values={}, distributions={'alpha': FloatDistribution(high=1.0, log=False, low=0.01, step=None)}, trial_id=7, value=None)]

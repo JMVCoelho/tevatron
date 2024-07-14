@@ -917,6 +917,7 @@ class LESSHardNegativesQueryLevelValid(HardNegatives):
         # initial = loss.item()
         
         with torch.cuda.amp.autocast(dtype=torch.bfloat16): #HACK hardcoded to bf16
+            #TRAIN
             q = {k:v.to("cuda") for k, v in q.items()}
             d = {k:v.to("cuda") for k, v in d.items()}
 
@@ -929,6 +930,7 @@ class LESSHardNegativesQueryLevelValid(HardNegatives):
         optimizer.zero_grad()
 
         with torch.cuda.amp.autocast(dtype=torch.bfloat16): #HACK hardcoded to bf16
+            #VALID
             qv = {k:v.to("cuda") for k, v in qv.items()}
             dv = {k:v.to("cuda") for k, v in dv.items()}
 
@@ -948,7 +950,7 @@ class LESSHardNegativesQueryLevelValid(HardNegatives):
         samples = []
 
         # Taking 5 independent samples
-        for _ in range(5):
+        for _ in range(2000):
             sample = random.sample(negative_ids, n)
             samples.append(sample)
 
@@ -1007,6 +1009,7 @@ class LESSHardNegativesQueryLevelValid(HardNegatives):
                     
                     h1.write(f"{query}\t{','.join(best)}\n") 
                     h2.write(f"{query}\t{','.join(worst)}\n")
+                    break
 
         with open(outpath + "_log.pkl", 'wb') as h:
             pickle.dump(self.qid2samplescores, h, protocol=pickle.HIGHEST_PROTOCOL)

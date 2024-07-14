@@ -7,7 +7,7 @@ random.seed(17121998)
 
 TEMPERATURES=[0.1, 1]
 
-log_path = "/data/user_data/jmcoelho/embeddings/marco_docs/pythia-160m-marco-docs-bow-ct-pretrain-bs256-all-queries-10k2-valid-5-group-level-T1/group_level_10000_two_valid_orcale"
+log_path = "/data/user_data/jmcoelho/embeddings/marco_docs/pythia-160m-1024-marco-docs-bow-contrastive-pretrain/group_level_10000_two_valid_orcale_momentum_10samples"
 
 def softmax(weights):
     exp_weights = np.exp(weights - np.max(weights))  
