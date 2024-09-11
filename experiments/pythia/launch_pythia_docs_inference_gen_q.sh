@@ -7,6 +7,8 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=15G
 #SBATCH --time=2-00:00:00
+#SBATCH --exclude=babel-4-36,babel-8-3,babel-4-28
+
 
 export TRANSFORMERS_CACHE=/data/datasets/hf_cache
 
@@ -15,7 +17,8 @@ conda activate tevatron
 
 module load cuda-11.8
 
-trained_model_name=pythia-160m-marco-docs-bow-ct-pretrain-bs256-small-supervision
+trained_model_name=$1
+
 
 EMBEDDING_OUTPUT_DIR=/data/user_data/jmcoelho/embeddings/marco_docs
 mkdir -p $EMBEDDING_OUTPUT_DIR/$trained_model_name
@@ -35,8 +38,8 @@ python -m tevatron.retriever.driver.encode \
   --per_device_eval_batch_size 300 \
   --query_max_len 32 \
   --passage_max_len 1024 \
-  --dataset_path "/data/user_data/jmcoelho/datasets/marco/documents/train.query.filtered.jsonl" \
-  --encode_output_path $EMBEDDING_OUTPUT_DIR/$trained_model_name/query-train.pkl
+  --dataset_path "/data/user_data/jmcoelho/datasets/marco/documents/gen.query.jsonl" \
+  --encode_output_path $EMBEDDING_OUTPUT_DIR/$trained_model_name/query-gen.pkl
 
 
 

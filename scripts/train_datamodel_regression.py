@@ -9,6 +9,7 @@ import torch.nn as nn
 from transformers.modeling_outputs import SequenceClassifierOutput
 from torch.nn import MSELoss
 from scipy.stats import pearsonr, spearmanr
+from sklearn.metrics import r2_score
 
 from tevatron.retriever.modeling import T5FusionRegression, T5Regression, BERTRegression
 
@@ -19,13 +20,18 @@ from transformers.modeling_outputs import (
     Seq2SeqModelOutput,
 )
 
+#normalization = ["log", "boxcox", "yeojohnson", "robust", "log_std"]
+normalization = sys.argv[1]
+n = sys.argv[2]
 
-#model_to_train =  "jmvcoelho/t5-base-marco-crop-pretrain-2048"
-model_to_train =  "google-bert/bert-base-uncased"
+model_to_train =  "jmvcoelho/t5-base-marco-crop-pretrain-2048"
 
-train_data_path = "/data/user_data/jmcoelho/embeddings/marco_docs/pythia-160m-marco-docs-bow-ct-pretrain-bs256-all-queries-10k2-valid-5-group-level-T1/group_level_10000_two_valid_orcale/datamodel_train_globalstd.tsv"
-val_data_path =  "/data/user_data/jmcoelho/embeddings/marco_docs/pythia-160m-marco-docs-bow-ct-pretrain-bs256-all-queries-10k2-valid-5-group-level-T1/group_level_10000_two_valid_orcale/datamodel_val_globalstd.tsv"
-test_data_path = "/data/user_data/jmcoelho/embeddings/marco_docs/pythia-160m-marco-docs-bow-ct-pretrain-bs256-all-queries-10k2-valid-5-group-level-T1/group_level_10000_two_valid_orcale/datamodel_test_globalstd.tsv"
+#model_to_train =  "google-bert/bert-base-uncased"
+
+train_data_path = f"/data/user_data/jmcoelho/embeddings/marco_docs/pythia-160m-marco-docs-bow-ct-pretrain-bs256-all-queries-10k2-valid-5-group-level-T0.1/group_level_10000_two_valid_orcale_momentum_600_query_2k/datamodel_train_independency_{normalization}.tsv"
+val_data_path =  f"/data/user_data/jmcoelho/embeddings/marco_docs/pythia-160m-marco-docs-bow-ct-pretrain-bs256-all-queries-10k2-valid-5-group-level-T0.1/group_level_10000_two_valid_orcale_momentum_600_query_2k/datamodel_val_independency_{normalization}.tsv"
+test_data_path =  f"/data/user_data/jmcoelho/embeddings/marco_docs/pythia-160m-marco-docs-bow-ct-pretrain-bs256-all-queries-10k2-valid-5-group-level-T0.1/group_level_10000_two_valid_orcale_momentum_600_query_2k/datamodel_test_independency_split{n}"
+out_preds =  f"/data/user_data/jmcoelho/embeddings/marco_docs/pythia-160m-marco-docs-bow-ct-pretrain-bs256-all-queries-10k2-valid-5-group-level-T0.1/group_level_10000_two_valid_orcale_momentum_600_query_2k/datamodel_test_independency_w_preds_{n}.tsv"
 model_out=f"temp"
 
 
@@ -64,7 +70,9 @@ class TrainCollator:
             return_tensors='pt',
         )
 
-        example['labels'] = torch.tensor([feature['label'] for feature in features])
+        if 'label' in features[0]:
+            example['labels'] = torch.tensor([feature['label'] for feature in features])
+
         return example
     
 class DatamodelDataset(Dataset):
@@ -97,24 +105,33 @@ class DatamodelDataset(Dataset):
 
     def __getitem__(self, item):
         example = self.train_data[item]['text']
-        query, docs, label = example.strip().split("\t")
-        docs = docs.split(",")
+
+        items = example.strip().split("\t")
+
+        if len(items) == 4:
+            query, pos, neg, label = items
+        elif len(items) == 3:
+            query, pos, neg = items
+            label = None
+        else:
+            raise ValueError(f"Wrong dataset format: {example}")
 
         tokenized_sentences = self.tokenizer(
-            #[QID2TEXT[query]] + [DID2TEXT[d] for d in docs],
-            [f"Query: {QID2TEXT[query]}. Document: {DID2TEXT[d]}" for d in docs],
+            #[QID2TEXT[query]] + [DID2TEXT[pos]] + [DID2TEXT[neg]],
+            ["Query: " + " ".join(QID2TEXT[query].split(" ")[:32]) + " " + \
+             "Positive: " + " ".join(DID2TEXT[pos].split(" ")[:400]) + " " + \
+             "Negative: " + " ".join(DID2TEXT[neg].split(" ")[:400]) + " " ],
             padding=False, 
             truncation=True,
-            max_length=256,
+            max_length=1024,
             return_attention_mask=False,
             return_token_type_ids=False,
             add_special_tokens=True,
         )
 
-      
-        #tokenized_sentences['input_ids'] = [item for sublist in tokenized_sentences['input_ids'] for item in sublist[:-1]]
+        if label is not None:
+            tokenized_sentences['label'] = torch.tensor(float(label), dtype=torch.float)
 
-        tokenized_sentences['label'] = torch.tensor(float(label), dtype=torch.float)
 
         return tokenized_sentences
     
@@ -125,9 +142,11 @@ def compute_metrics(preds):
     mse = np.mean((p.flatten() - l.flatten()) ** 2)
     pearson_corr = pearsonr(p.flatten(), l.flatten())[0]
     spearman_corr = spearmanr(p.flatten(), l.flatten())[0]
+    r2 = r2_score(p.flatten(), l.flatten())
     return {'mse': mse,
             'pearson':pearson_corr,
-            'spearman_corr':spearman_corr}
+            'spearman_corr':spearman_corr,
+            'r2': r2}
 
 
 tokenizer = AutoTokenizer.from_pretrained(model_to_train)
@@ -136,7 +155,7 @@ tokenizer = AutoTokenizer.from_pretrained(model_to_train)
 collator = TrainCollator(tokenizer)
 
 
-model = BERTRegression(model_to_train, n_fusion=10) 
+model = T5Regression(model_to_train) 
 
 train_dataset = DatamodelDataset(data_files=train_data_path, tokenizer=tokenizer)
 val_dataset = DatamodelDataset(data_files=val_data_path, tokenizer=tokenizer)
@@ -148,8 +167,8 @@ collator = TrainCollator(tokenizer)
 training_args = TrainingArguments(
     output_dir=model_out,
     learning_rate=1e-5,
-    per_device_train_batch_size=10,
-    per_device_eval_batch_size=100,
+    per_device_train_batch_size=20,
+    per_device_eval_batch_size=800,
     num_train_epochs=1,
     evaluation_strategy="steps",
     save_strategy="no",
@@ -157,6 +176,7 @@ training_args = TrainingArguments(
     logging_steps=1,
     weight_decay=0.01,
     fp16=True,
+    run_name=f"t52k-independency-q-{normalization}"
 )
 
 trainer = Trainer(
@@ -168,17 +188,17 @@ trainer = Trainer(
     data_collator=collator,
     compute_metrics=lambda x: compute_metrics(x),
 )
-predictions = trainer.predict(test_dataset)
-
-print("RANDOM PRED")
-print(predictions.metrics)
 
 trainer.train() 
-print("FINAL PRED")
-predictions = trainer.predict(test_dataset)
-print(predictions.metrics)
+preds = trainer.predict(test_dataset=test_dataset).predictions
 
-trainer.save_model(model_out)
+with open(test_data_path, 'r') as h, \
+    open(out_preds, 'w') as out:
+        for line, pred in zip(h, preds):
+            qid, pos, neg = line.strip().split()
+            out.write(f"{qid}\t{neg}\t{pred[0]}\n")
+
+trainer.save_model(model_out, safe_serialization=False)
 
 
 

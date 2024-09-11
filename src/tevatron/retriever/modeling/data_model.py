@@ -110,14 +110,15 @@ class BERTRegression(nn.Module):
         hidden = outputs.last_hidden_state #[bs*fusion, seq_len, hidden_dim]
 
         ## AVG pool each independent q/d, then avg pool everything
-        # pooled = self.average_pool(hidden, attention_mask)
-        # per_example = pooled.reshape(pooled.size(0)//self.n_fusion, -1, pooled.size(-1))
-        # reps = self.average_pool(per_example)
+        pooled = self.average_pool(hidden, attention_mask)
+        per_example = pooled.reshape(pooled.size(0)//self.n_fusion, -1, pooled.size(-1))
+        reps = self.average_pool(per_example)
+
 
         ## Just avgpool everything at once
-        pooled = hidden.reshape(hidden.size(0)//self.n_fusion, -1, hidden.size(-1))
-        attention_mask = attention_mask.reshape(-1, pooled.size(1))
-        reps = self.average_pool(pooled, attention_mask)
+        # pooled = hidden.reshape(hidden.size(0)//self.n_fusion, -1, hidden.size(-1))
+        # attention_mask = attention_mask.reshape(-1, pooled.size(1))
+        # reps = self.average_pool(pooled, attention_mask)
 
         reps = self.dropout(reps)
         logits = self.regression(reps)
@@ -136,16 +137,16 @@ class BERTRegression(nn.Module):
 class T5Regression(nn.Module):
     def __init__(self, model_path):
         super().__init__()
-        self.t5fid = T5ModelRoPE.from_pretrained(model_path)
+        self.t5 = T5ModelRoPE.from_pretrained(model_path)
         self.dropout = nn.Dropout(0.1)
-        self.regression = nn.Linear(self.t5fid.config.hidden_size, 1)
+        self.regression = nn.Linear(self.t5.config.hidden_size, 1)
         self.loss_fct = MSELoss()
 
     def forward(self, input_ids, attention_mask, labels=None):
         decoder_input_ids = torch.zeros((input_ids.shape[0], 1), dtype=torch.long).to(input_ids.device)
-        outputs = self.t5fid(input_ids, attention_mask=attention_mask, decoder_input_ids=decoder_input_ids)
+        outputs = self.t5(input_ids, attention_mask=attention_mask, decoder_input_ids=decoder_input_ids)
         hidden = outputs.last_hidden_state
-        reps = self.dropout(hidden[:, 0, :]) # bert for seq classification does this.
+        reps = self.dropout(hidden[:, 0, :])
         logits = self.regression(reps)
 
         loss = None

@@ -34,8 +34,8 @@ module load cuda-11.8
 #     --cache_dir /data/datasets/hf_cache 
 
 
-model=pythia-160m-marco-docs-bow-ct-pretrain-bs256-all-queries-10k2-valid-10-group-level-T0.1-self-hn-1-random-negs-momentum
-outfolder=/data/user_data/jmcoelho/embeddings/marco_docs/$model/random_train_run_splits/random
+model=pythia-160m-marco-docs-bow-ct-pretrain-bs256-small-supervision
+outfolder=/data/user_data/jmcoelho/embeddings/marco_docs/$model/random
 
 mkdir -p $outfolder
 n_negatives=9
@@ -43,11 +43,11 @@ n_negatives=9
 python -m tevatron.retriever.driver.select_hard_negatives \
     --method random \
     --validation_set /data/user_data/jmcoelho/datasets/marco/documents/processed_data/$model/bm25/val.jsonl \
-    --train_run_path /data/user_data/jmcoelho/embeddings/marco_docs/$model/run.train.2.to.1.to.1.momentum.txt \
+    --train_run_path /data/user_data/jmcoelho/embeddings/marco_docs/$model/run.train.txt \
     --train_qrels /data/user_data/jmcoelho/datasets/marco/documents/qrels.train.tsv \
     --embedding_path /data/user_data/jmcoelho/embeddings/marco_docs/$model/ \
     --number_of_negatives $n_negatives \
-    --negatives_out_file $outfolder/full.queries.train+val.random.top100.2momentum.txt \
+    --negatives_out_file $outfolder/full.queries.train+val.random.top100.txt \
     --output_dir temp \
     --model_name_or_path /data/user_data/jmcoelho/models/fine-tuned/$model \
     --dataset_cache_dir /data/datasets/hf_cache \

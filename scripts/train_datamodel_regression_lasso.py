@@ -52,7 +52,7 @@ def process_datapoint(datapoint):
             print("tough luck")
             return None, None
         pos, score = qid2doc_scores[qid][did]
-        feature_vector[int(pos)-1] = 1
+        feature_vector[int(pos)-1] = score
     
     return feature_vector, float(label)
 
@@ -140,8 +140,41 @@ def objective_lasso(trial):
 
 
 study = optuna.create_study(directions=["minimize", "maximize"])
-study.optimize(objective_lasso, n_trials=20)
+study.optimize(objective_mlp, n_trials=20)
 
 print(study.best_trials)
 
 optuna.visualization.plot_pareto_front(study, target_names=["MSE", "CORRELATION"])
+
+
+# regressor_params = {
+#         'alpha': 0.01
+#     }
+# regressor = Ridge(random_state=42, **regressor_params)
+
+# # Create pipeline
+# pipeline = Pipeline([
+#     ('scaler', StandardScaler()),
+#     ('regressor', regressor)
+# ])
+
+# # Fit the pipeline on training data
+# pipeline.fit(X_train, y_train)
+
+# # Predict on validation data
+# y_pred = pipeline.predict(X_val)
+
+# # Calculate mean squared error (you can use other metrics as needed)
+# mse = mean_squared_error(y_val, y_pred)
+# val_corr, _ = pearsonr(y_val, y_pred)
+
+
+# print(f"MSE: {mse}")
+# print(f"CORR: {val_corr}")
+# # Accessing the coefficients from the Ridge regressor
+# ridge_regressor = pipeline.named_steps['regressor']
+# coefficients = ridge_regressor.coef_
+
+# # Printing the coefficients
+# print("Coefficients of the linear model:")
+# print(coefficients)

@@ -3,7 +3,7 @@
 #SBATCH --output=logs/%x-%j.out
 #SBATCH -e logs/%x-%j.err
 #SBATCH --partition=general
-#SBATCH --gres=gpu:A6000
+#SBATCH --gres=gpu:6000Ada
 #SBATCH --cpus-per-task=2
 #SBATCH --mem=16G
 #SBATCH --time=2-00:00:00
@@ -16,20 +16,29 @@ conda activate tevatron
 
 module load cuda-11.8
 
-model_name=$1
-port=$2
-model_to_valid=/data/user_data/jmcoelho/models/fine-tuned/$model_name
+#model_name=$1
+#port=$2
+model_name=pythia-160m-marco-docs-bow-ct-pretrain-bs256-small-supervision-unsupervised-lower-valid-loss-delete
+iii=$1
+chkpt=checkpoint-$iii
+port=$((RANDOM % (23000 - 20000 + 1) + 20000))
+#model_to_valid=/data/user_data/jmcoelho/models/fine-tuned/$model_name
+model_to_valid=/data/user_data/jmcoelho/models/fine-tuned/$model_name/$chkpt
+rm /data/user_data/jmcoelho/models/fine-tuned/$model_name/$chkpt/model.safetensors
+
+cp /data/user_data/jmcoelho/models/fine-tuned/$model_name/special_tokens_map.json /data/user_data/jmcoelho/models/fine-tuned/$model_name/$chkpt
+cp /data/user_data/jmcoelho/models/fine-tuned/$model_name/tokenizer_config.json /data/user_data/jmcoelho/models/fine-tuned/$model_name/$chkpt
+cp /data/user_data/jmcoelho/models/fine-tuned/$model_name/tokenizer.json /data/user_data/jmcoelho/models/fine-tuned/$model_name/$chkpt
 
 
-model_valid_data=pythia-160m-marco-docs-bow-ct-pretrain-bs256-all-queries-valid-5-group-level-best
+model_valid_data=pythia-160m-marco-docs-bow-ct-pretrain-bs256-small-supervision
 
-rm /data/user_data/jmcoelho/models/fine-tuned/$model_name/model.safetensors
 
 deepspeed --include localhost:0 --master_port $port --module tevatron.retriever.driver.train \
   --deepspeed deepspeed/ds_zero3_config.json \
-  --output_dir temp \
-  --model_name_or_path $model_to_valid\
-  --dataset_path /data/user_data/jmcoelho/datasets/marco/documents/processed_data/$model_valid_data/random_all_queries/val.jsonl \
+  --output_dir temp_z$iii \
+  --model_name_or_path $model_to_valid \
+  --dataset_path /data/user_data/jmcoelho/datasets/marco/documents/processed_data/$model_valid_data/random_all_queries_10k_two_valid/val_1.jsonl \
   --dataset_cache_dir /data/datasets/hf_cache \
   --cache_dir /data/datasets/hf_cache \
   --save_steps 1000 \

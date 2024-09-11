@@ -950,7 +950,7 @@ class LESSHardNegativesQueryLevelValid(HardNegatives):
         samples = []
 
         # Taking 5 independent samples
-        for _ in range(2000):
+        for _ in range(5):
             sample = random.sample(negative_ids, n)
             samples.append(sample)
 
@@ -1000,7 +1000,7 @@ class LESSHardNegativesQueryLevelValid(HardNegatives):
         logger.info(f"Sampling started.")
 
         self.qid2samplescores = {}
-
+        
         with open(outpath+"_group_level_best", 'w') as h1, \
             open(outpath+"_group_level_worst", 'w') as h2:
                 for query in tqdm(self.qid2negs):
@@ -1009,7 +1009,6 @@ class LESSHardNegativesQueryLevelValid(HardNegatives):
                     
                     h1.write(f"{query}\t{','.join(best)}\n") 
                     h2.write(f"{query}\t{','.join(worst)}\n")
-                    break
 
         with open(outpath + "_log.pkl", 'wb') as h:
             pickle.dump(self.qid2samplescores, h, protocol=pickle.HIGHEST_PROTOCOL)

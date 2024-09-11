@@ -43,9 +43,30 @@ class TevatronTrainer(Trainer):
 
     def compute_loss(self, model, inputs):
         query, passage = inputs
-        loss = model(query=query, passage=passage).loss
+
+        model_out = model(query=query, passage=passage)
+        loss = model_out.loss
+
+        # if model_out.train_loss is not None:
+        #     self.log({
+        #         "TRAIN_CE_LOSS": model_out.train_loss.item(),
+        #         "TRAIN_MRR": model_out.train_mrr.item(),
+        #     })
+        # else:
+        #     self.log({
+        #         "VALID_CE_LOSS": model_out.val_loss.item(),
+        #         "VALID_MRR": model_out.val_mrr.item(),
+        #     })
+
         return loss
 
     def training_step(self, *args):
         return super(TevatronTrainer, self).training_step(*args) / self._dist_loss_scale_factor
+
+    def prediction_step(self, model, inputs, prediction_loss_only, ignore_keys):
+
+        with torch.no_grad():
+            loss = self.compute_loss(model, inputs) / self._dist_loss_scale_factor
+
+        return (loss, None, None)
 

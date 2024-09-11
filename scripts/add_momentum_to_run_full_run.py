@@ -1,7 +1,7 @@
 import random
 random.seed(17121998)
 N_MOMENTUM = 3
-
+MOMENTUM_TOP_N = 100
 
 # full_run_current = "/data/user_data/jmcoelho/embeddings/marco_docs/pythia-160m-marco-docs-bow-ct-pretrain-bs128-all-queries-less-5-group-level-best/run.train.txt"
 # full_run_prev = "/data/user_data/jmcoelho/embeddings/marco_docs/pythia-160m-1024-marco-docs-bow-contrastive-pretrain/run.train.txt"
@@ -17,9 +17,13 @@ N_MOMENTUM = 3
 # full_run_prev = "/data/user_data/jmcoelho/embeddings/marco_docs/pythia-160m-1024-marco-docs-bow-contrastive-pretrain/run.train.txt"
 # out = "/data/user_data/jmcoelho/embeddings/marco_docs/pythia-160m-marco-docs-bow-ct-pretrain-bs256-all-queries-10k2-valid-10-group-level-T0.1/run.train.2.to.1.momentum.txt"
 
-full_run_current = "/data/user_data/jmcoelho/embeddings/marco_docs/pythia-160m-marco-docs-bow-ct-pretrain-bs256-all-queries-10k2-valid-10-group-level-T0.1-self-hn-1-random-negs-momentum/run.train.txt"
-full_run_prev = "/data/user_data/jmcoelho/embeddings/marco_docs/pythia-160m-marco-docs-bow-ct-pretrain-bs256-all-queries-10k2-valid-10-group-level-T0.1/run.train.2.to.1.momentum.txt"
-out = "/data/user_data/jmcoelho/embeddings/marco_docs/pythia-160m-marco-docs-bow-ct-pretrain-bs256-all-queries-10k2-valid-10-group-level-T0.1-self-hn-1-random-negs-momentum/run.train.2.to.1.to.1.momentum.txt"
+# full_run_current = "/data/user_data/jmcoelho/embeddings/marco_docs/pythia-160m-marco-docs-bow-ct-pretrain-bs256-all-queries-10k2-valid-10-group-level-T0.1-self-hn-1-random-negs-momentum/run.train.txt"
+# full_run_prev = "/data/user_data/jmcoelho/embeddings/marco_docs/pythia-160m-marco-docs-bow-ct-pretrain-bs256-all-queries-10k2-valid-10-group-level-T0.1/run.train.2.to.1.momentum.txt"
+# out = "/data/user_data/jmcoelho/embeddings/marco_docs/pythia-160m-marco-docs-bow-ct-pretrain-bs256-all-queries-10k2-valid-10-group-level-T0.1-self-hn-1-random-negs-momentum/run.train.2.to.1.to.1.momentum.txt"
+
+full_run_current = "/data/user_data/jmcoelho/embeddings/marco_docs/pythia-160m-marco-docs-bow-ct-pretrain-bs256-all-queries-10k2-valid-5-group-level-top200-T0.1/run.train.top.200.txt"
+full_run_prev = "/data/user_data/jmcoelho/embeddings/marco_docs/pythia-160m-1024-marco-docs-bow-contrastive-pretrain/run.train.txt"
+out = "/data/user_data/jmcoelho/embeddings/marco_docs/pythia-160m-marco-docs-bow-ct-pretrain-bs256-all-queries-10k2-valid-5-group-level-top200-T0.1/run.train.2.to.1.momentum.txt"
 
 qid2prev_negs = {}
 with open(full_run_prev, 'r') as h:
@@ -51,7 +55,7 @@ with open(out, 'w') as fout:
     for qid in qid2curr_negs:
         curr_negs = qid2curr_negs[qid]
         prev_negs = qid2prev_negs[qid]
-        momentum_sample = random.sample(prev_negs, 50)
+        momentum_sample = random.sample(prev_negs, MOMENTUM_TOP_N)
 
         negs = curr_negs + momentum_sample
 

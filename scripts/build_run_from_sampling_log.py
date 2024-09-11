@@ -7,11 +7,13 @@ random.seed(17121998)
 
 TEMPERATURES=[0.1, 1]
 
-log_path = "/data/user_data/jmcoelho/embeddings/marco_docs/pythia-160m-1024-marco-docs-bow-contrastive-pretrain/group_level_10000_two_valid_orcale_momentum_10samples"
+log_path = "/data/user_data/jmcoelho/embeddings/marco_docs/pythia-160m-1024-marco-docs-bow-contrastive-pretrain/group_level_10000_two_valid_orcale_top200"
 
 def softmax(weights):
     exp_weights = np.exp(weights - np.max(weights))  
     return exp_weights / exp_weights.sum()
+
+done_qs = set() # this should NOT be necessary...
 
 for temp in TEMPERATURES:
     with open(f"{log_path}/group_hardnegs_softmax_t{temp}", "w") as out:
@@ -20,11 +22,14 @@ for temp in TEMPERATURES:
                 data = pickle.load(h)
 
                 for query in data:
-                    samples = data[query]
-                    probabilities = softmax([-float(s[1])/temp for s in samples])
+                    if query not in done_qs:
+                        samples = data[query]
+                        probabilities = softmax([-float(s[1])/temp for s in samples])
 
-                    random_sample_index = np.random.choice(len(samples), p=probabilities)
-                    
-                    negs = samples[random_sample_index][0]
+                        random_sample_index = np.random.choice(len(samples), p=probabilities)
+                        
+                        negs = samples[random_sample_index][0]
 
-                    out.write(f"{query}\t{','.join(negs)}\n")
+                        out.write(f"{query}\t{','.join(negs)}\n")
+
+                        done_qs.add(query)

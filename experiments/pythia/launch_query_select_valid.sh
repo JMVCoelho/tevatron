@@ -5,7 +5,7 @@
 #SBATCH --partition=general
 #SBATCH --cpus-per-task=12
 #SBATCH --mem=50G
-#SBATCH --gres=gpu:L40:1
+#SBATCH --gres=gpu:A6000:1
 #SBATCH --time=2-00:00:00
 #SBATCH --exclude=babel-4-28
 
@@ -16,20 +16,20 @@ module load cuda-11.8
 
 #export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
-model=pythia-160m-1024-marco-docs-bow-contrastive-pretrain
-prefix=pre-trained
+model=pythia-160m-marco-docs-bow-ct-pretrain-bs256-small-supervision
+prefix=fine-tuned
 n_negatives=9
 
 subset=$1
 
-python -m tevatron.retriever.driver.select_hard_negatives \
+python -m tevatron.retriever.driver.select_queries \
     --method valid_query_level \
     --validation_set /data/user_data/jmcoelho/datasets/marco/documents/processed_data/$model/random_all_queries_10k_two_valid/val_1.jsonl \
-    --train_run_path /data/user_data/jmcoelho/embeddings/marco_docs/$model/full-queries-run-splits/group-level-valid-oracle-top200/run.train.all.queries.$1 \
-    --train_qrels /data/user_data/jmcoelho/datasets/marco/documents/qrels.train.tsv \
+    --train_run_path /data/user_data/jmcoelho/embeddings/marco_docs/$model/run.gen.all.queries.$1 \
+    --train_qrels /data/user_data/jmcoelho/datasets/marco/documents/qrels.gen.tsv \
     --embedding_path /data/user_data/jmcoelho/embeddings/marco_docs/$model/valid_grads_bs64/ \
     --number_of_negatives $n_negatives \
-    --negatives_out_file /data/user_data/jmcoelho/embeddings/marco_docs/$model/group_level_10000_two_valid_orcale_top200/group_hardnegs_$1 \
+    --negatives_out_file /data/user_data/jmcoelho/embeddings/marco_docs/$model/query_influence_grouped_debug/run_split_$1 \
     --output_dir temp \
     --model_name_or_path /data/user_data/jmcoelho/models/$prefix/$model \
     --dataset_cache_dir /data/datasets/hf_cache \

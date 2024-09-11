@@ -13,21 +13,28 @@
 # training_data=/data/user_data/jmcoelho/embeddings/marco_docs/$model_to_train/random_train_run_splits/random/full.stain+val.random.top100.txt 
 
 
-model_to_train=pythia-160m-marco-docs-bow-ct-pretrain-bs256-all-queries-10k2-valid-10-group-level-T0.1-self-hn-1-random-negs-momentum
-prefix=fine-tuned
-final_model_name=$model_to_train-self-hn-2-random-negs-2momentum
-save_pretok=/data/user_data/jmcoelho/datasets/marco/documents/processed_data/$model_to_train/random_momentum_2
-do_pretok=True 
-training_data=/data/user_data/jmcoelho/embeddings/marco_docs/$model_to_train/random_train_run_splits/random/full.queries.train+val.random.top100.2momentum.txt
+# model_to_train=pythia-160m-marco-docs-bow-ct-pretrain-bs256-all-queries-10k2-valid-10-group-level-T0.1-self-hn-1-random-negs-momentum
+# prefix=fine-tuned
+# final_model_name=$model_to_train-self-hn-2-random-negs-2momentum
+# save_pretok=/data/user_data/jmcoelho/datasets/marco/documents/processed_data/$model_to_train/random_momentum_2
+# do_pretok=True 
+# training_data=/data/user_data/jmcoelho/embeddings/marco_docs/$model_to_train/random_train_run_splits/random/full.queries.train+val.random.top100.2momentum.txt
 
 # model_to_train=pythia-160m-1024-marco-docs-bow-contrastive-pretrain
 # prefix=pre-trained
-# final_model_name=pythia-160m-marco-docs-bow-ct-pretrain-bs256-all-queries-10k2-valid-10-group-level-T0.1
-# save_pretok=/data/user_data/jmcoelho/datasets/marco/documents/processed_data/$model_to_train/random_all_queries_10g_top100_10k2v_T0.1
+# final_model_name=pythia-160m-marco-docs-bow-ct-pretrain-bs256-all-queries-10k2-valid-5-group-level-top200-T0.1
+# save_pretok=/data/user_data/jmcoelho/datasets/marco/documents/processed_data/$model_to_train/random_all_queries_10g_top100_10k2v_top200_T0.1
 # do_pretok=True 
-# training_data=/data/user_data/jmcoelho/embeddings/marco_docs/$model_to_train/group_level_10000_two_valid_orcale_momentum_10samples/group_hardnegs_softmax_t0.1
+# training_data=/data/user_data/jmcoelho/embeddings/marco_docs/$model_to_train/group_level_10000_two_valid_orcale_top200/group_hardnegs_softmax_t0.1
 
-n_val=10000
+model_to_train=pythia-160m-1024-marco-docs-bow-contrastive-pretrain
+prefix=pre-trained
+final_model_name=pythia-160m-marco-docs-bow-ct-pretrain-bs256-bm25-warmup
+save_pretok=/data/user_data/jmcoelho/datasets/marco/documents/processed_data/$model_to_train/bm25negs-warmup
+do_pretok=False 
+training_data=/data/user_data/jmcoelho/embeddings/marco_docs/$model_to_train/random_train_run_splits/random-bm25/17800.train.val.random.txt
+
+n_val=5000
 
 port=$((RANDOM % (23000 - 20000 + 1) + 20000))
 
@@ -39,10 +46,11 @@ if [ "$do_pretok" = "True" ]; then
     JOB1_ID=$(sbatch -d afterok:$JOB0_ID experiments/pythia/launch_pythia_docs_selfhn1.sh $final_model_name $save_pretok/train.jsonl $prefix/$model_to_train $port | awk '{print $NF}')
     echo "Submitted batch job $JOB1_ID"
 else
-    JOB1_ID=$(sbatch experiments/pythia/launch_pythia_docs_selfhn1.sh $final_model_name $save_pretok/train.jsonl $prefix/$model_to_train $port | awk '{print $NF}')
+    JOB1_ID=$(sbatch experiments/pythia/launch_pythia_docs_selfhn1.sh $final_model_name $save_pretok/train.jsonl $save_pretok/val.jsonl $prefix/$model_to_train $port | awk '{print $NF}')
     echo "Submitted batch job $JOB1_ID"
 fi
 
+exit
 
 JOB2_ID=$(sbatch -d afterok:$JOB1_ID experiments/pythia/launch_pythia_docs_inference.sh $final_model_name 0 | awk '{print $NF}')
 JOB3_ID=$(sbatch -d afterok:$JOB1_ID experiments/pythia/launch_pythia_docs_inference.sh $final_model_name 1 | awk '{print $NF}')

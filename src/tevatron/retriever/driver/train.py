@@ -78,14 +78,19 @@ def main():
     collator = TrainCollator(data_args, tokenizer) if data_args.dataset_path is None else TrainCollatorPreprocessed(data_args, tokenizer)
     train_dataset.tokenizer = tokenizer
 
+    eval_dataset = TrainDataset(data_args) if data_args.dataset_path is None else TrainDatasetPreprocessed(data_args, is_eval=True)
+    eval_dataset.tokenizer = tokenizer
+
     trainer_cls = GCTrainer if training_args.grad_cache else Trainer
     trainer = trainer_cls(
         model=model,
         args=training_args,
         train_dataset=train_dataset,
+        eval_dataset=eval_dataset,
         data_collator=collator
     )
     train_dataset.trainer = trainer
+    eval_dataset.trainer = trainer
 
     trainer.train()  # TODO: resume training
     trainer.save_model()

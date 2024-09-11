@@ -64,5 +64,5 @@ python src/tevatron/utils/format/convert_result_to_trec.py \
 qrels=./qrels/marco.docs.5000val2.qrel.tsv
 trec_run=$EMBEDDING_OUTPUT_DIR/$trained_model_name/run.valid.2.trec
 
-python scripts/evaluate.py $qrels $trec_run
-python scripts/evaluate.py -m mrr_cut.100 $qrels $trec_run
+python scripts/eval_trec.py $qrels $trec_run
+python scripts/eval_trec.py -m mrr_cut.100 $qrels $trec_run

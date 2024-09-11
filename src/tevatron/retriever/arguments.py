@@ -86,6 +86,10 @@ class DataArguments:
         default=None, metadata={"help": "Path to local data files or directory"}
     )
 
+    eval_dataset_path: str = field(
+        default=None, metadata={"help": "Path to local data files or directory"}
+    )
+
     dataset_split: str = field(
         default='train', metadata={"help": "dataset split"}
     )

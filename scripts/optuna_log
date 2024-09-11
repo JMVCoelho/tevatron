@@ -96,3 +96,30 @@
 [I 2024-07-13 21:51:22,878] Trial 18 finished with values: [0.42550557242517045, 0.7489125165359352] and parameters: {'alpha': 0.013366350252981968}. 
 [I 2024-07-13 21:51:22,904] Trial 19 finished with values: [0.42543188923006253, 0.7489191412607381] and parameters: {'alpha': 0.7173177001299056}. 
 [FrozenTrial(number=7, state=TrialState.COMPLETE, values=[0.4254095966467306, 0.7489211492147027], datetime_start=datetime.datetime(2024, 7, 13, 21, 51, 22, 210598), datetime_complete=datetime.datetime(2024, 7, 13, 21, 51, 22, 351310), params={'alpha': 0.9310250027100697}, user_attrs={}, system_attrs={'nsga2:generation': 0}, intermediate_values={}, distributions={'alpha': FloatDistribution(high=1.0, log=False, low=0.01, step=None)}, trial_id=7, value=None)]
+
+
+
+(q,d+): 
+
+ ([0, (q,d+,d-), ..., 0], label)
+ ([1, 0, ..., 1], label)
+
+(\sum_{d-} LM(q \cat d+ \cat d-) ) -> label
+rather than \sum_{d-} w(I(d-))
+
+ wX
+
+
+
+No momentum (oracle)
+Unif: 0.29 -> 0.331
+Ours: 0.29 -> 0.352
+
+MOmentum (oracle)
+Unif: 0.29 -> 0.375
+Ours: 0.29 -> 0.385 [top-100 + 50] 2:1  (SimANS, InDI, rr)
+
+1000 + 400
+
+
+# AST 

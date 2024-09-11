@@ -13,22 +13,22 @@ eval "$(conda shell.bash hook)"
 conda activate tevatron
 module load cuda-11.8
 
-trained_model_name=pythia-160m-marco-docs-bow-ct-pretrain-bs256-all-queries-10k2-valid-dev-overfit
+trained_model_name=pythia-160m-marco-docs-bow-ct-pretrain-bs256-small-supervision
 prefix=fine-tuned
-save_pretok=/data/user_data/jmcoelho/datasets/marco/documents/processed_data/$trained_model_name/dev_overfit
-negative_file=/data/user_data/jmcoelho/embeddings/marco_docs/$trained_model_name/random_train_run_splits/random/full.queries.dev.top100.txt
+save_pretok=/data/user_data/jmcoelho/datasets/marco/documents/processed_data/$trained_model_name/random_all_queries_10k_two_valid
+negative_file=/data/user_data/jmcoelho/embeddings/marco_docs/$trained_model_name/random/full.queries.train+val.random.top100.txt
 
 text_length=1024
 
 data_path=/data/user_data/jmcoelho/datasets/marco/documents
 
-# train_qrels=$data_path/qrels.train.tsv
-# corpus=$data_path/corpus_firstp_2048.tsv
-# train_queries=$data_path/train.query.filtered.txt
-
-train_qrels=$data_path/qrels.dev.tsv
+train_qrels=$data_path/qrels.train.tsv
 corpus=$data_path/corpus_firstp_2048.tsv
-train_queries=$data_path/dev.query.txt
+train_queries=$data_path/train.query.filtered.txt
+
+# train_qrels=$data_path/qrels.dev.tsv
+# corpus=$data_path/corpus_firstp_2048.tsv
+# train_queries=$data_path/dev.query.txt
 
 initial_data_save_folder=$save_pretok
 
@@ -45,10 +45,6 @@ python scripts/pretokenize.py \
    --save_to $initial_data_save_folder  \
    --doc_template "Title: <title> Text: <text>" \
    --n_sample 9
-
-cat $initial_data_save_folder/split*.jsonl > $initial_data_save_folder/dev.jsonl
-rm $initial_data_save_folder/split*.jsonl
-exit
 
 
 cat $initial_data_save_folder/split*.jsonl > $initial_data_save_folder/full.jsonl

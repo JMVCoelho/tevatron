@@ -11,6 +11,9 @@ from peft import LoraConfig, TaskType, get_peft_model, PeftModel
 from transformers.file_utils import ModelOutput
 from tevatron.retriever.arguments import ModelArguments, TevatronTrainingArguments as TrainingArguments
 
+import torch.nn.functional as F
+
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -21,6 +24,18 @@ class EncoderOutput(ModelOutput):
     p_reps: Optional[Tensor] = None
     loss: Optional[Tensor] = None
     scores: Optional[Tensor] = None
+
+
+@dataclass
+class DeleteOutput(ModelOutput):
+    q_reps: Optional[Tensor] = None
+    p_reps: Optional[Tensor] = None
+    loss: Optional[Tensor] = None
+    scores: Optional[Tensor] = None
+    val_loss: Optional[Tensor] = None
+    train_loss: Optional[Tensor] = None
+    train_mrr: Optional[Tensor] = None
+    val_mrr: Optional[Tensor] = None
 
 
 class EncoderModel(nn.Module):
@@ -61,31 +76,91 @@ class EncoderModel(nn.Module):
             )
 
         # for training
-        if self.training:
-            if self.is_ddp:
-                q_reps = self._dist_gather_tensor(q_reps)
-                p_reps = self._dist_gather_tensor(p_reps)
+        if self.is_ddp:
+            q_reps = self._dist_gather_tensor(q_reps)
+            p_reps = self._dist_gather_tensor(p_reps)
 
-            scores = self.compute_similarity(q_reps, p_reps)
-            scores = scores.view(q_reps.size(0), -1)
+        scores = self.compute_similarity(q_reps, p_reps)
+        scores = scores.view(q_reps.size(0), -1)
 
-            target = torch.arange(scores.size(0), device=scores.device, dtype=torch.long)
-            target = target * (p_reps.size(0) // q_reps.size(0))
+        target = torch.arange(scores.size(0), device=scores.device, dtype=torch.long)
+        target = target * (p_reps.size(0) // q_reps.size(0))
 
-            loss = self.compute_loss(scores / self.temperature, target, weights)
+        loss = self.compute_loss(scores / self.temperature, target, weights)
 
-            if self.is_ddp:
-                loss = loss * self.world_size  # counter average weight reduction
-        # for eval
-        else:
-            scores = self.compute_similarity(q_reps, p_reps)
-            loss = None
+
+        ## NO INBATCH 
+        # batch_size = q_reps.size(0)
+        # negatives_per_query = 9  # assume you have this number predefined
+        # pos_idx = 0  # index of the positive passage within the set of negatives
+
+        # loss = 0
+        # for i in range(batch_size):
+        #     q_rep = q_reps[i]
+            
+        #     p_reps_for_query = p_reps[i * (negatives_per_query + 1):(i + 1) * (negatives_per_query + 1)]
+            
+        #     scores = torch.matmul(q_rep, p_reps_for_query.transpose(0, 1)) / self.temperature
+            
+        #     target = torch.tensor([pos_idx], device=q_rep.device, dtype=torch.long)
+            
+        #     loss += F.cross_entropy(scores.unsqueeze(0), target)
+
+        # loss = loss / batch_size
+
+        # def scores_to_ranks(scores):
+        #     # Step 1: Invert the scores
+        #     inverted_scores = -scores
+            
+        #     # Step 2: Get ranks
+        #     _, ranks = inverted_scores.sort(dim=-1)
+        #     ranks = ranks.argsort(dim=-1) + 1
+            
+        #     return ranks
+
+        # rrs = []
+        # ranks = scores_to_ranks(scores)
+        # for i in range(len(target)):
+        #     rr = 1/(ranks[i][target[i]])
+        #     rrs.append(rr)
+        
+        
+
+
+
+        # if len(rrs) == 1:
+        #     train_mrr = sum(rrs)/len(rrs)
+        #     train_ce_loss = loss
+        #     val_mrr = None
+        #     val_ce_loss = None
+
+        # else:
+        #     val_mrr = sum(rrs)/len(rrs)
+        #     val_ce_loss = loss
+        #     train_mrr = None
+        #     train_ce_loss = None
+
+
+        if self.is_ddp:
+            loss = loss * self.world_size  # counter average weight reduction
+        
+        # return DeleteOutput(
+        #     loss=loss,
+        #     scores=scores,
+        #     q_reps=q_reps,
+        #     p_reps=p_reps,
+        #     val_loss=val_ce_loss,
+        #     train_loss=train_ce_loss,
+        #     train_mrr=train_mrr,
+        #     val_mrr=val_mrr
+        # )
         return EncoderOutput(
             loss=loss,
             scores=scores,
             q_reps=q_reps,
             p_reps=p_reps,
         )
+
 
     def encode_passage(self, psg):
         raise NotImplementedError('EncoderModel is an abstract class')

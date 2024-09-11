@@ -83,15 +83,26 @@ class TrainDataset(Dataset):
         return formated_query, formated_passages
     
 class TrainDatasetPreprocessed(Dataset):
-    def __init__(self, data_args: DataArguments, trainer = None):
+    def __init__(self, data_args: DataArguments, trainer = None, is_eval=False):
         self.data_args = data_args
-        self.train_data = load_dataset(
-            self.data_args.dataset_name,
-            self.data_args.dataset_config,
-            data_files=self.data_args.dataset_path,
-            split=self.data_args.dataset_split,
-            cache_dir=self.data_args.dataset_cache_dir,
-        )
+
+        if is_eval:
+            self.train_data = load_dataset(
+                self.data_args.dataset_name,
+                self.data_args.dataset_config,
+                data_files=self.data_args.eval_dataset_path,
+                split=self.data_args.dataset_split,
+                cache_dir=self.data_args.dataset_cache_dir,
+            )
+        else:
+            self.train_data = load_dataset(
+                self.data_args.dataset_name,
+                self.data_args.dataset_config,
+                data_files=self.data_args.dataset_path,
+                split=self.data_args.dataset_split,
+                cache_dir=self.data_args.dataset_cache_dir,
+            )
+
         if self.data_args.dataset_number_of_shards > 1:
             self.encode_data = self.encode_data.shard(
                 num_shards=self.data_args.dataset_number_of_shards,

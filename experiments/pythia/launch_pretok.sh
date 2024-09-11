@@ -26,6 +26,11 @@ train_qrels=$data_path/qrels.train.tsv
 corpus=$data_path/corpus_firstp_2048.tsv
 train_queries=$data_path/train.query.filtered.txt
 
+
+# train_qrels=$data_path/qrels.gen.tsv
+# corpus=$data_path/corpus_firstp_2048.tsv
+# train_queries=$data_path/gen.query.tsv
+
 initial_data_save_folder=$save_pretok
 
 #bs64_contrastive_topk

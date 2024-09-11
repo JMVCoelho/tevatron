@@ -14,21 +14,20 @@ conda activate tevatron
 module load cuda-11.8
 
 
-model=pythia-160m-marco-docs-bow-ct-pretrain-bs256-all-queries-10k2-valid-5-group-level-T0.1
+model=pythia-160m-marco-docs-bow-ct-pretrain-bs256-all-queries-random-negs-top100
 
-mkdir -p /data/user_data/jmcoelho/embeddings/marco_docs/$model/full-queries-run-splits-with-momentum/group-level-valid-oracle/
+mkdir -p /data/user_data/jmcoelho/embeddings/marco_docs/$model/run-splits/
 
-#split -d -a 2 -l 2293900 /data/user_data/jmcoelho/embeddings/marco_docs/$model/run.train.txt /data/user_data/jmcoelho/embeddings/marco_docs/$model/full-queries-run-splits/group-level-valid-oracle/run.train.all.queries.
-split -d -a 2 -l 3441000 /data/user_data/jmcoelho/embeddings/marco_docs/$model/run.train.2.to.1.momentum.txt /data/user_data/jmcoelho/embeddings/marco_docs/$model/full-queries-run-splits-with-momentum/group-level-valid-oracle/run.train.all.queries.
+split -d -a 1 -l 4587700 /data/user_data/jmcoelho/embeddings/marco_docs/$model/run.train.txt /data/user_data/jmcoelho/embeddings/marco_docs/$model/run-splits/run.train.all.queries.
 
 
-mv /data/user_data/jmcoelho/embeddings/marco_docs/$model/full-queries-run-splits-with-momentum/group-level-valid-oracle/run.train.all.queries.00 /data/user_data/jmcoelho/embeddings/marco_docs/$model/full-queries-run-splits-with-momentum/group-level-valid-oracle/run.train.all.queries.0
-mv /data/user_data/jmcoelho/embeddings/marco_docs/$model/full-queries-run-splits-with-momentum/group-level-valid-oracle/run.train.all.queries.01 /data/user_data/jmcoelho/embeddings/marco_docs/$model/full-queries-run-splits-with-momentum/group-level-valid-oracle/run.train.all.queries.1
-mv /data/user_data/jmcoelho/embeddings/marco_docs/$model/full-queries-run-splits-with-momentum/group-level-valid-oracle/run.train.all.queries.02 /data/user_data/jmcoelho/embeddings/marco_docs/$model/full-queries-run-splits-with-momentum/group-level-valid-oracle/run.train.all.queries.2
-mv /data/user_data/jmcoelho/embeddings/marco_docs/$model/full-queries-run-splits-with-momentum/group-level-valid-oracle/run.train.all.queries.03 /data/user_data/jmcoelho/embeddings/marco_docs/$model/full-queries-run-splits-with-momentum/group-level-valid-oracle/run.train.all.queries.3
-mv /data/user_data/jmcoelho/embeddings/marco_docs/$model/full-queries-run-splits-with-momentum/group-level-valid-oracle/run.train.all.queries.04 /data/user_data/jmcoelho/embeddings/marco_docs/$model/full-queries-run-splits-with-momentum/group-level-valid-oracle/run.train.all.queries.4
-mv /data/user_data/jmcoelho/embeddings/marco_docs/$model/full-queries-run-splits-with-momentum/group-level-valid-oracle/run.train.all.queries.05 /data/user_data/jmcoelho/embeddings/marco_docs/$model/full-queries-run-splits-with-momentum/group-level-valid-oracle/run.train.all.queries.5
-mv /data/user_data/jmcoelho/embeddings/marco_docs/$model/full-queries-run-splits-with-momentum/group-level-valid-oracle/run.train.all.queries.06 /data/user_data/jmcoelho/embeddings/marco_docs/$model/full-queries-run-splits-with-momentum/group-level-valid-oracle/run.train.all.queries.6
-mv /data/user_data/jmcoelho/embeddings/marco_docs/$model/full-queries-run-splits-with-momentum/group-level-valid-oracle/run.train.all.queries.07 /data/user_data/jmcoelho/embeddings/marco_docs/$model/full-queries-run-splits-with-momentum/group-level-valid-oracle/run.train.all.queries.7
-mv /data/user_data/jmcoelho/embeddings/marco_docs/$model/full-queries-run-splits-with-momentum/group-level-valid-oracle/run.train.all.queries.08 /data/user_data/jmcoelho/embeddings/marco_docs/$model/full-queries-run-splits-with-momentum/group-level-valid-oracle/run.train.all.queries.8
-mv /data/user_data/jmcoelho/embeddings/marco_docs/$model/full-queries-run-splits-with-momentum/group-level-valid-oracle/run.train.all.queries.09 /data/user_data/jmcoelho/embeddings/marco_docs/$model/full-queries-run-splits-with-momentum/group-level-valid-oracle/run.train.all.queries.9
+# mv /data/user_data/jmcoelho/embeddings/marco_docs/$model/run-splits/run.train.all.queries.00 /data/user_data/jmcoelho/embeddings/marco_docs/$model/run-splits/run.train.all.queries.0
+# mv /data/user_data/jmcoelho/embeddings/marco_docs/$model/run-splits/run.train.all.queries.01 /data/user_data/jmcoelho/embeddings/marco_docs/$model/run-splits/run.train.all.queries.1
+# mv /data/user_data/jmcoelho/embeddings/marco_docs/$model/run-splits/run.train.all.queries.02 /data/user_data/jmcoelho/embeddings/marco_docs/$model/run-splits/run.train.all.queries.2
+# mv /data/user_data/jmcoelho/embeddings/marco_docs/$model/run-splits/run.train.all.queries.03 /data/user_data/jmcoelho/embeddings/marco_docs/$model/run-splits/run.train.all.queries.3
+# mv /data/user_data/jmcoelho/embeddings/marco_docs/$model/run-splits/run.train.all.queries.04 /data/user_data/jmcoelho/embeddings/marco_docs/$model/run-splits/run.train.all.queries.4
+# mv /data/user_data/jmcoelho/embeddings/marco_docs/$model/run-splits/run.train.all.queries.05 /data/user_data/jmcoelho/embeddings/marco_docs/$model/run-splits/run.train.all.queries.5
+# mv /data/user_data/jmcoelho/embeddings/marco_docs/$model/run-splits/run.train.all.queries.06 /data/user_data/jmcoelho/embeddings/marco_docs/$model/run-splits/run.train.all.queries.6
+# mv /data/user_data/jmcoelho/embeddings/marco_docs/$model/run-splits/run.train.all.queries.07 /data/user_data/jmcoelho/embeddings/marco_docs/$model/run-splits/run.train.all.queries.7
+# mv /data/user_data/jmcoelho/embeddings/marco_docs/$model/run-splits/run.train.all.queries.08 /data/user_data/jmcoelho/embeddings/marco_docs/$model/run-splits/run.train.all.queries.8
+# mv /data/user_data/jmcoelho/embeddings/marco_docs/$model/run-splits/run.train.all.queries.09 /data/user_data/jmcoelho/embeddings/marco_docs/$model/run-splits/run.train.all.queries.9

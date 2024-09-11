@@ -5,7 +5,7 @@
 #SBATCH --partition=general
 #SBATCH --cpus-per-task=12
 #SBATCH --mem=50G
-#SBATCH --gres=gpu:A6000:1
+#SBATCH --gres=gpu:6000Ada:1
 #SBATCH --time=2-00:00:00
 #SBATCH --exclude=babel-4-28,babel-8-11
 
@@ -14,4 +14,4 @@ conda activate tevatron
 
 module load cuda-11.8
 
-python scripts/train_datamodel_regression.py
+python scripts/train_datamodel_regression.py $1 $2

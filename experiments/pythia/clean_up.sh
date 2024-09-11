@@ -20,6 +20,6 @@ rm $EMBEDDING_OUTPUT_DIR/$trained_model_name/*.pkl
 rm -r $save_pretok
 
 #remove model
-rm -r $MODELS_DIR/$trained_model_name
+#rm -r $MODELS_DIR/$trained_model_name
 
 echo "Done".

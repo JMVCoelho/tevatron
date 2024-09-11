@@ -15,8 +15,8 @@ module load cuda-11.8
 
 model=pythia-160m-1024-marco-docs-bow-contrastive-pretrain
 
-cat /data/user_data/jmcoelho/embeddings/marco_docs/$model/group_level_10000_two_valid_orcale_momentum_10samples/*_best > /data/user_data/jmcoelho/embeddings/marco_docs/$model/group_level_10000_two_valid_orcale_momentum_10samples/group_hardnegs_full_best
-cat /data/user_data/jmcoelho/embeddings/marco_docs/$model/group_level_10000_two_valid_orcale_momentum_10samples/*_worst > /data/user_data/jmcoelho/embeddings/marco_docs/$model/group_level_10000_two_valid_orcale_momentum_10samples/group_hardnegs_full_worst
+cat /data/user_data/jmcoelho/embeddings/marco_docs/$model/group_level_10000_two_valid_orcale_top200/*_best > /data/user_data/jmcoelho/embeddings/marco_docs/$model/group_level_10000_two_valid_orcale_top200/group_hardnegs_full_best
+cat /data/user_data/jmcoelho/embeddings/marco_docs/$model/group_level_10000_two_valid_orcale_top200/*_worst > /data/user_data/jmcoelho/embeddings/marco_docs/$model/group_level_10000_two_valid_orcale_top200/group_hardnegs_full_worst
 
 
 python /home/jmcoelho/tevatron/scripts/build_run_from_sampling_log.py 

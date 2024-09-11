@@ -2,19 +2,21 @@
 #SBATCH --job-name=pythia_dr
 #SBATCH --output=logs/%x-%j.out
 #SBATCH -e logs/%x-%j.err
-#SBATCH --partition=general
+#SBATCH --partition=general / long / debug
 #SBATCH --gres=gpu:A6000:1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=32G
 #SBATCH --time=2-00:00:00
 #SBATCH --exclude=babel-4-28
 
+
+
 export TRANSFORMERS_CACHE=/data/datasets/hf_cache
 
 eval "$(conda shell.bash hook)"
 conda activate tevatron
 
-module load cuda-11.8
+module load cuda-12.1
 
 #sampling_temp=inf
 #trained_model_name=pythia-160m-marco-docs-bow-ct-pretrain-bs64-10pc-sample-less-negs-self-hn1-less-temp$sampling_temp
