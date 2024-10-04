@@ -179,7 +179,7 @@ class SimpleTrainPreProcessor:
         return json.dumps(train_example)
 
 
-random.seed(datetime.now())
+random.seed(17121998)
 parser = ArgumentParser()
 parser.add_argument('--tokenizer_name', required=True)
 parser.add_argument('--negative_file', required=True)

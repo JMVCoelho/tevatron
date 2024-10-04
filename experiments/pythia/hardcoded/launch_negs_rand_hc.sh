@@ -34,8 +34,32 @@ module load cuda-11.8
 #     --cache_dir /data/datasets/hf_cache 
 
 
+# model=pythia-160m-marco-docs-bow-ct-pretrain-bs256-small-supervision
+# outfolder=/data/user_data/jmcoelho/embeddings/marco_docs/$model/random
+
+# mkdir -p $outfolder
+# n_negatives=9
+
+# python -m tevatron.retriever.driver.select_hard_negatives \
+#     --method random \
+#     --validation_set /data/user_data/jmcoelho/datasets/marco/documents/processed_data/$model/bm25/val.jsonl \
+#     --train_run_path /data/user_data/jmcoelho/embeddings/marco_docs/$model/run.train.txt \
+#     --train_qrels /data/user_data/jmcoelho/datasets/marco/documents/qrels.train.tsv \
+#     --embedding_path /data/user_data/jmcoelho/embeddings/marco_docs/$model/ \
+#     --number_of_negatives $n_negatives \
+#     --negatives_out_file $outfolder/full.queries.train+val.random.top100.txt \
+#     --output_dir temp \
+#     --model_name_or_path /data/user_data/jmcoelho/models/fine-tuned/$model \
+#     --dataset_cache_dir /data/datasets/hf_cache \
+#     --cache_dir /data/datasets/hf_cache 
+
+
+
+
+
 model=pythia-160m-marco-docs-bow-ct-pretrain-bs256-small-supervision
-outfolder=/data/user_data/jmcoelho/embeddings/marco_docs/$model/random
+prefix=fine-tuned
+outfolder=/data/user_data/jmcoelho/embeddings/marco_docs/$model/gen11-shnegs/
 
 mkdir -p $outfolder
 n_negatives=9
@@ -43,14 +67,15 @@ n_negatives=9
 python -m tevatron.retriever.driver.select_hard_negatives \
     --method random \
     --validation_set /data/user_data/jmcoelho/datasets/marco/documents/processed_data/$model/bm25/val.jsonl \
-    --train_run_path /data/user_data/jmcoelho/embeddings/marco_docs/$model/run.train.txt \
-    --train_qrels /data/user_data/jmcoelho/datasets/marco/documents/qrels.train.tsv \
+    --train_run_path /data/user_data/jmcoelho/embeddings/marco_docs/$model/run.gen11.txt \
+    --train_qrels /data/user_data/jmcoelho/datasets/marco/documents/qrels.gen11.tsv \
     --embedding_path /data/user_data/jmcoelho/embeddings/marco_docs/$model/ \
     --number_of_negatives $n_negatives \
-    --negatives_out_file $outfolder/full.queries.train+val.random.top100.txt \
+    --negatives_out_file $outfolder/queries.random.shn.top100.txt \
     --output_dir temp \
-    --model_name_or_path /data/user_data/jmcoelho/models/fine-tuned/$model \
+    --model_name_or_path /data/user_data/jmcoelho/models/$prefix/$model \
     --dataset_cache_dir /data/datasets/hf_cache \
     --cache_dir /data/datasets/hf_cache 
+
 
 # head -1 /data/user_data/jmcoelho/embeddings/marco_docs/pythia-160m-marco-docs-bow-ct-pretrain-bs64-10pc-sample-less-negs/random_train_run_splits/random/10pc.val.random.txt

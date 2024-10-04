@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from tqdm import tqdm
-from sklearn.cluster import KMeans
+#from sklearn.cluster import KMeans
 from contextlib import nullcontext
 import math
 import json
@@ -9,7 +9,7 @@ import torch.nn.functional as F
 import copy
 
 
-from opacus.grad_sample import GradSampleModule
+#from opacus.grad_sample import GradSampleModule
 
 import numpy as np
 import torch

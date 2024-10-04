@@ -1,18 +1,20 @@
 #!/bin/bash
-#SBATCH --job-name=gen_queries
+#SBATCH --job-name=gen_queries_train
 #SBATCH --output=logs/%x-%j.out
 #SBATCH -e logs/%x-%j.err
 #SBATCH --partition=general
 #SBATCH --cpus-per-task=24
-#SBATCH --gres=gpu:A6000:1
+#SBATCH --gres=gpu:6000Ada:1
 #SBATCH --mem=100G
-#SBATCH --time=1-00:00:00
+#SBATCH --time=2-00:00:00
 #SBATCH --exclude=babel-4-36,babel-8-3,babel-4-28
 
 
 eval "$(conda shell.bash hook)"
 conda activate tevatron
 
-module load cuda-11.3
 export TRANSFORMERS_CACHE=/data/datasets/hf_cache
-python scripts/generate_queries.py $1
+
+module load cuda-12.4
+
+CUDA_LAUNCH_BLOCKING=1 python scripts/train_dpo.py 

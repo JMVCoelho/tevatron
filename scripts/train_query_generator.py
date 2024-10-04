@@ -3,7 +3,7 @@ import torch
 from tqdm import tqdm
 
 import torch
-from torch.utils.data import Dataset, DataLoader, SequentialSampler
+from torch.utils.data import Dataset, DataLoader, SequentialSampler, DistributedSampler
 import argparse
 from transformers import (
     Seq2SeqTrainingArguments,
@@ -14,6 +14,7 @@ import ast
 
 
 class T5QueryGenerator():
+    # This should actually work with any model that supports HF's generate call, not just t5s.
     def __init__(self, base_model="t5-base", max_tokens=512, device='cuda'):
         self.max_tokens = max_tokens
         self.device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
@@ -50,22 +51,15 @@ class T5QueryGenerator():
         texts = []
         for example in batch:
             document = example
-            texts.append(f'Generate query: {document}. Query:')
+            texts.append(f'Generate a query for this document: {document}.')
             
         tokenized = self.tokenizer(texts, padding=True, truncation='longest_first', return_tensors='pt', max_length=self.max_tokens)
-        
-        # Force "Query:<eos>" to be at the end of the prompt, if it gets truncated.
-        for example in tokenized['input_ids']:
-            example[-4:] = torch.LongTensor([3, 27569, 10, 1])
-        for example in tokenized['attention_mask']:
-            example[-4:] = torch.LongTensor([1, 1, 1, 1])
 
         for name in tokenized:
             tokenized[name] = tokenized[name].to(self.device)
 
         return tokenized
     
-
     # documents: list of strings; each string a document.
     def inference(self, documents, batchsize=300, generation_config=None):
         model_eval = self.model_train.eval()
@@ -94,8 +88,9 @@ class NonShuffleSeq2SeqTrainer(Seq2SeqTrainer):
 
         train_dataset = self.train_dataset
         
-        # change this for a distributed sampler if training on multi-gpu
+        # TODO: check world-size and add an if statement here.
         train_sampler = SequentialSampler(self.train_dataset)
+        #train_sampler = DistributedSampler(self.train_dataset)
         
         return DataLoader(
             train_dataset,
@@ -109,7 +104,7 @@ class NonShuffleSeq2SeqTrainer(Seq2SeqTrainer):
         )
         
 class QueryGenerationDatasetMemory(Dataset):
-    # This dataset expects a line by line file with "query\tdocument"
+    # This dataset expects a jsonl file 
     def __init__(self, filename):
         self._filename = filename
         self._total_data = 0
@@ -122,11 +117,14 @@ class QueryGenerationDatasetMemory(Dataset):
     def __getitem__(self, idx):
         line = self.lines[idx]
         data = ast.literal_eval(line)
-        query = data['query']
-        try:
+        query = data['query'] if 'query' in data else data['user_query']
+
+        if 'text' in data:
             doc = data['text']
-        except Exception:
+        elif 'positive_document' in data:
             doc = data['positive_document']
+        else:
+            doc = data['metadata']['doc_a']
         
         return {'query': query, 'doc': doc}
 
@@ -226,6 +224,7 @@ def main():
         per_device_eval_batch_size=args.per_device_eval_batch_size,
         gradient_accumulation_steps=args.gradient_accumulation_steps,
         learning_rate=args.learning_rate,
+        lr_scheduler_type="cosine",
         weight_decay=5e-5,
         num_train_epochs=args.epochs,
         warmup_steps=args.warmup_steps,

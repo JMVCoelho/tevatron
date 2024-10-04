@@ -6,12 +6,12 @@
 #SBATCH --cpus-per-task=12
 #SBATCH --mem=100G
 #SBATCH --time=1-00:00:00
-#SBATCH --exclude=babel-4-36,babel-8-3,babel-4-28
+#SBATCH --exclude=babel-4-36,babel-8-3,babel-4-28,babel-4-11
 
 export TRANSFORMERS_CACHE=/data/datasets/hf_cache
 eval "$(conda shell.bash hook)"
 conda activate tevatron
-module load cuda-11.8
+module load cuda-12.1
 
 trained_model_name=$1
 save_pretok=$2
@@ -20,16 +20,30 @@ n_val=$4
 
 text_length=1024
 
+#data_path=/data/user_data/jmcoelho/datasets/marco/documents
+
+# train_qrels=$data_path/qrels.train.tsv
+# corpus=$data_path/corpus_firstp_2048.tsv
+# train_queries=$data_path/train.query.filtered.txt
+
+
+# data_path=/data/user_data/jmcoelho/datasets/marco/documents
+
+# train_qrels=$data_path/qrels.gen5.tsv
+# corpus=$data_path/corpus_firstp_2048.tsv
+# train_queries=$data_path/gen5.query.tsv
+
 data_path=/data/user_data/jmcoelho/datasets/marco/documents
 
-train_qrels=$data_path/qrels.train.tsv
+train_qrels=$data_path/qrels.gen12.tsv
 corpus=$data_path/corpus_firstp_2048.tsv
-train_queries=$data_path/train.query.filtered.txt
+train_queries=$data_path/gen12.query.tsv
 
+# data_path=/data/group_data/cx_group/query_generation_data/GPT4/bm25-negatives
 
-# train_qrels=$data_path/qrels.gen.tsv
-# corpus=$data_path/corpus_firstp_2048.tsv
-# train_queries=$data_path/gen.query.tsv
+# train_qrels=$data_path/qrels.gen7.int.tsv
+# corpus=$data_path/corpus_int.tsv
+# train_queries=$data_path/../gen7.query.tsv
 
 initial_data_save_folder=$save_pretok
 

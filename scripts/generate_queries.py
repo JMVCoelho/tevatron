@@ -1,6 +1,18 @@
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 import torch
 from tqdm import tqdm
+from transformers import set_seed
+import math
+import sys
+
+CHUNK = int(sys.argv[1])
+CHUNK_SIZE = 100000
+#set_seed(17121998)
+
+def get_chunk(data, chunk_number):
+    start_index = chunk_number * CHUNK_SIZE
+    end_index = start_index + CHUNK_SIZE
+    return data[start_index:end_index]
 
 class T5QueryGenerator():
     def __init__(self, base_model="t5-base", max_tokens=512, device='cuda'):
@@ -23,17 +35,11 @@ class T5QueryGenerator():
         for example in batch:
             document = example['doc']
             query = example['query']
-            texts.append(f'Generate query: {document}. Query:')
+            texts.append(f'Generate a query for this document: {document}.')
             labels.append(query)
             
         tokenized = self.tokenizer(texts, padding=True, truncation='longest_first', return_tensors='pt', max_length=self.max_tokens)
         tokenized['labels'] = self.tokenizer(labels, return_tensors='pt', padding=True, truncation='longest_first')['input_ids']
-        
-        # Force "Query:<eos>" to be at the end of the prompt, if it gets truncated.
-        for example in tokenized['input_ids']:
-            example[-4:] = torch.LongTensor([3, 27569, 10, 1])
-        for example in tokenized['attention_mask']:
-            example[-4:] = torch.LongTensor([1, 1, 1, 1])
 
         for name in tokenized:
             tokenized[name] = tokenized[name].to(self.device)
@@ -44,15 +50,9 @@ class T5QueryGenerator():
         texts = []
         for example in batch:
             document = example
-            texts.append(f'Generate query: {document}. Query:')
+            texts.append(f'Generate a query for this document: {document}.')
             
         tokenized = self.tokenizer(texts, padding=True, truncation='longest_first', return_tensors='pt', max_length=self.max_tokens)
-        
-        # Force "Query:<eos>" to be at the end of the prompt, if it gets truncated.
-        for example in tokenized['input_ids']:
-            example[-4:] = torch.LongTensor([3, 27569, 10, 1])
-        for example in tokenized['attention_mask']:
-            example[-4:] = torch.LongTensor([1, 1, 1, 1])
 
         for name in tokenized:
             tokenized[name] = tokenized[name].to(self.device)
@@ -71,50 +71,16 @@ class T5QueryGenerator():
                 yield X[idx:min(idx + batch_size, l)]
 
         outputs = []
-        for sample in tqdm(batch(documents, batchsize)):
+        for sample in tqdm(batch(documents, batchsize), total=math.ceil(len(documents)/batchsize)):
             inputs = self.tokenize_inference(sample)
-            sample_outputs = model_eval.generate(**inputs, generation_config=generation_config)
+            try:
+                sample_outputs = model_eval.generate(**inputs, **generation_config)
+            except Exception:
+                sample_outputs = model_eval.generate(**inputs, generation_config=generation_config)
             outputs.extend(sample_outputs)
 
         return self.tokenizer.batch_decode(outputs, skip_special_tokens=True)
     
-
-
-documents = [
-    """UK-Israeli mother wounded in West Bank attack dies
-    The mother from a British-Israeli family who was wounded in a suspected Palestinian gun attack on Friday which killed two of her daughters has died.
-    Lucy Dee, 45, had been in a coma since the attack in the occupied West Bank.
-
-    Her daughters Rina, 15, and Maia, 20, were buried on Sunday in the settlement of Kfar Etzion in front of their father and three siblings.
-
-    The family moved to Israel nine years ago from the UK, where Lucy's husband had served as a rabbi in north London.
-
-    Thousands of mourners attended the emotionally charged funeral of the sisters. In his eulogy Rabbi Leo Dee asked: "How will I explain to Lucy what has happened to our two precious gifts, Maia and Rina, when she wakes up from her coma?"
-
-    Ein Kerem Hospital in Jerusalem announced that Lucy (who was also known by her Hebrew name, Leah) Dee had died on Monday morning "despite g
-reat and constant efforts".
-
-    Lucy, Rina and Maia were shot at as they were driving in the Jordan Valley in the northern West Bank on their way to a family holiday. Thei
-r vehicle crashed and the gunmen went up to the car and opened fire on the women at close range, Israeli media quoted investigators as saying.
-    """,
-
-    """Lasse Wellander: Abba pay tribute to guitarist's 'musical brilliance'
-    Abba have paid tribute to long-serving guitarist Lasse Wellander, saying his "musical brilliance" played "an integral role in the Abba stor
-y".
-
-    Wellander first worked with the Swedish quartet as a session musician on their self-titled 1975 album and became the main guitarist on thei
-r subsequent LPs.
-
-    He can be heard on hits such as Knowing Me, Knowing You, Thank You for the Music and The Winner Takes It All.
-
-    "Lasse was a dear friend, a fun guy and a superb guitarist," Abba said.
-
-    He died on Friday at the age of 70.
-    """,
-]
-
-
-#sample 8k docs that are not in qrels
 
 dids_in_qrels = set()
 with open("/data/user_data/jmcoelho/datasets/marco/documents/qrels.train.tsv", 'r') as h:
@@ -135,16 +101,36 @@ with open("/data/user_data/jmcoelho/datasets/marco/documents/corpus_firstp_2048.
         if did not in dids_in_qrels:
             good_doc_ids.append(did)
             corpus[did] = f"{title} {text}"
-            if len(good_doc_ids) == 300000:
+            if len(good_doc_ids) == 800000:
                 break
 
 documents = [corpus[doc_id] for doc_id in good_doc_ids]
 
-longp = T5QueryGenerator(base_model='jmvcoelho/t5-base-msmarco-squad-query-generation-longp-v2', max_tokens=1536, device='cuda')
-longp_queries = longp.inference(documents, batchsize=150)
+documents = get_chunk(documents, CHUNK)
 
-q_id = 0
-with open("/data/user_data/jmcoelho/datasets/marco/documents/gen2.query.tsv", 'w', encoding='utf-8') as out_1, open("/data/user_data/jmcoelho/datasets/marco/documents/qrels.gen2.tsv", 'w', encoding='utf-8') as out_2:
+
+generation_config = {
+    "num_return_sequences": 2,
+    "do_sample": True,
+    "temperature": 1.0,
+    "top_k": 50,
+    "top_p": 0.9,
+    "repetition_penalty": 1.2
+}
+
+#generation_config = None
+
+longp = T5QueryGenerator(base_model='/data/user_data/jmcoelho/models/query_generators/pilet5-large-gpt-query-gen-512', max_tokens=512, device='cuda')
+longp_queries = longp.inference(documents, batchsize=60, generation_config=generation_config)
+
+try:
+    q_id = int(CHUNK*CHUNK_SIZE) * int(generation_config["num_return_sequences"])
+    good_doc_ids = [item for item in get_chunk(good_doc_ids, CHUNK) for _ in range(generation_config["num_return_sequences"])]
+except Exception:
+    q_id = int(CHUNK*CHUNK_SIZE)
+    good_doc_ids = [item for item in get_chunk(good_doc_ids, CHUNK)]
+
+with open(f"/data/user_data/jmcoelho/datasets/marco/documents/gen10_{CHUNK}.query.tsv", 'w', encoding='utf-8') as out_1, open(f"/data/user_data/jmcoelho/datasets/marco/documents/qrels.gen10_{CHUNK}.tsv", 'w', encoding='utf-8') as out_2:
     for doc_id, query in zip(good_doc_ids, longp_queries):
         query = query.replace('\t', '').replace('\n', '').replace('\r', '')
         try:
@@ -155,10 +141,3 @@ with open("/data/user_data/jmcoelho/datasets/marco/documents/gen2.query.tsv", 'w
         q_id += 1
 
 print("Done")
-
-
-
-
-
-
-#pythia-160m-marco-docs-bow-ct-pretrain-bs256-all-queries-random-negs-top100

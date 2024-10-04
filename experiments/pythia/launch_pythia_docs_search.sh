@@ -4,7 +4,7 @@
 #SBATCH -e logs/%x-%j.err
 #SBATCH --partition=general
 #SBATCH --cpus-per-task=24
-#SBATCH --mem=100G
+#SBATCH --mem=50G
 #SBATCH --time=1-00:00:00
 #SBATCH --gres=gpu:A6000:1
 #SBATCH --exclude=babel-4-36,babel-8-3,babel-4-28,babel-3-19
@@ -13,7 +13,7 @@
 eval "$(conda shell.bash hook)"
 conda activate tevatron
 
-module load cuda-11.8
+module load cuda-12.1
 
 trained_model_name=$1
 

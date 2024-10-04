@@ -14,7 +14,7 @@ export TRANSFORMERS_CACHE=/data/datasets/hf_cache
 eval "$(conda shell.bash hook)"
 conda activate tevatron
 
-module load cuda-11.8
+module load cuda-12.1
 
 #sampling_temp=inf
 #trained_model_name=pythia-160m-marco-docs-bow-ct-pretrain-bs64-10pc-sample-less-negs-self-hn1-less-temp$sampling_temp
@@ -35,8 +35,8 @@ deepspeed --include localhost:0,1,2,3 --master_port $port --module tevatron.retr
   --eval_dataset_path $eval_data \
   --dataset_cache_dir /data/datasets/hf_cache \
   --cache_dir /data/datasets/hf_cache \
-  --save_steps 1000 \
-  --eval_steps 25 \
+  --save_steps 0 \
+  --eval_steps 100 \
   --evaluation_strategy steps \
   --bf16 \
   --pooling eos \

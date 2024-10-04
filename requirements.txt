@@ -1,0 +1,13 @@
+transformers
+peft
+datasets
+tqdm
+pandas
+numpy
+pytest
+ruff
+pytrec_eval
+deepspeed
+accelerate
+wandb
+ninja

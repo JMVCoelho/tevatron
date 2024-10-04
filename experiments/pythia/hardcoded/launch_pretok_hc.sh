@@ -13,7 +13,7 @@ eval "$(conda shell.bash hook)"
 conda activate tevatron
 module load cuda-11.8
 
-trained_model_name=pythia-160m-marco-docs-bow-ct-pretrain-bs256-small-supervision
+trained_model_name=pythia-160m-marco-docs-bow-ct-pretrain-bs256-small-supervision-1gpu
 prefix=fine-tuned
 save_pretok=/data/user_data/jmcoelho/datasets/marco/documents/processed_data/$trained_model_name/random_all_queries_10k_two_valid
 negative_file=/data/user_data/jmcoelho/embeddings/marco_docs/$trained_model_name/random/full.queries.train+val.random.top100.txt

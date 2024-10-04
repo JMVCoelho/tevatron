@@ -14,7 +14,7 @@ trained_model_name=$1
 save_pretok=$2
 
 # remove embeddings
-rm $EMBEDDING_OUTPUT_DIR/$trained_model_name/*.pkl
+#rm $EMBEDDING_OUTPUT_DIR/$trained_model_name/*.pkl
 
 # remove pretokenized data
 rm -r $save_pretok

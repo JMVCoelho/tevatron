@@ -15,7 +15,7 @@ export TRANSFORMERS_CACHE=/data/datasets/hf_cache
 eval "$(conda shell.bash hook)"
 conda activate tevatron
 
-module load cuda-11.8
+module load cuda-12.1
 
 trained_model_name=$1
 shard=$2

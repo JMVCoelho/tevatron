@@ -1,2 +1,2 @@
 from .hard_negatives import LESSHardNegativesQueryLevelOpacus, RandomHardNegatives, InDiHardNegatives, LESSHardNegatives, LESSHardNegativesOpacus, LESSHardNegativesQueryLevelValid
-from .queries import MATESQueryAttribution, LESSQueryAttribution, GranNormQueryAttribution, GranVarianceQueryAttribution
+from .queries import MATESQueryAttributionPAIRS, MATESQueryAttribution, LESSQueryAttribution, GranNormQueryAttribution, GranVarianceQueryAttribution

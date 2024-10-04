@@ -85,7 +85,7 @@ class TrainDataset(Dataset):
 class TrainDatasetPreprocessed(Dataset):
     def __init__(self, data_args: DataArguments, trainer = None, is_eval=False):
         self.data_args = data_args
-
+        
         if is_eval:
             self.train_data = load_dataset(
                 self.data_args.dataset_name,

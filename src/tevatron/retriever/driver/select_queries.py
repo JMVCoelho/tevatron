@@ -1,7 +1,7 @@
 import logging
 import os
 import sys
-from tevatron.retriever.data_selection import GranNormQueryAttribution, MATESQueryAttribution, LESSQueryAttribution, GranVarianceQueryAttribution
+from tevatron.retriever.data_selection import MATESQueryAttributionPAIRS, GranNormQueryAttribution, MATESQueryAttribution, LESSQueryAttribution, GranVarianceQueryAttribution
 
 from transformers import (
     HfArgumentParser,
@@ -24,21 +24,28 @@ def main():
         data_args: DataArguments
         training_args: TrainingArguments
     
-    sampler = MATESQueryAttribution(qrels_path=data_args.train_qrels, 
-                                run_path=data_args.train_run_path,
-                                valid_path=data_args.validation_set,
-                                model_args=model_args,
-                                data_args=data_args,
-                                training_args=training_args)
-    
-
-    # sampler = LESSQueryAttribution(qrels_path=data_args.train_qrels, 
+    # sampler = MATESQueryAttribution(qrels_path=data_args.train_qrels, 
     #                             run_path=data_args.train_run_path,
     #                             valid_path=data_args.validation_set,
     #                             model_args=model_args,
     #                             data_args=data_args,
-    #                             training_args=training_args,
-    #                             embeddings_path=data_args.embedding_path)
+    #                             training_args=training_args)
+
+    # sampler = MATESQueryAttributionPAIRS(qrels_path=data_args.train_qrels, 
+    #                             run_path=data_args.train_run_path,
+    #                             valid_path=data_args.validation_set,
+    #                             model_args=model_args,
+    #                             data_args=data_args,
+    #                             training_args=training_args)
+    
+
+    sampler = LESSQueryAttribution(qrels_path=data_args.train_qrels, 
+                                run_path=data_args.train_run_path,
+                                valid_path=data_args.validation_set,
+                                model_args=model_args,
+                                data_args=data_args,
+                                training_args=training_args,
+                                embeddings_path=data_args.embedding_path)
 
 
     # sampler = GranNormQueryAttribution(qrels_path=data_args.train_qrels, 
@@ -59,6 +66,8 @@ def main():
         
     sampler.sample_hard_negatives(n=data_args.number_of_negatives,
                                   outpath=data_args.negatives_out_file)
+    
+    # sampler.get_initial_valid_loss(outpath=data_args.negatives_out_file)
 
 
 if __name__ == "__main__":

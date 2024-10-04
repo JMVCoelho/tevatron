@@ -94,6 +94,7 @@ def main():
 
     trainer.train()  # TODO: resume training
     trainer.save_model()
+    trainer.save_state()
     if trainer.is_world_process_zero():
         tokenizer.save_pretrained(training_args.output_dir)
 
