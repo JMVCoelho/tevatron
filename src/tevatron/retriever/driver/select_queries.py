@@ -24,12 +24,12 @@ def main():
         data_args: DataArguments
         training_args: TrainingArguments
     
-    # sampler = MATESQueryAttribution(qrels_path=data_args.train_qrels, 
-    #                             run_path=data_args.train_run_path,
-    #                             valid_path=data_args.validation_set,
-    #                             model_args=model_args,
-    #                             data_args=data_args,
-    #                             training_args=training_args)
+    sampler = MATESQueryAttribution(qrels_path=data_args.train_qrels, 
+                                run_path=data_args.train_run_path,
+                                valid_path=data_args.validation_set,
+                                model_args=model_args,
+                                data_args=data_args,
+                                training_args=training_args)
 
     # sampler = MATESQueryAttributionPAIRS(qrels_path=data_args.train_qrels, 
     #                             run_path=data_args.train_run_path,
@@ -39,13 +39,13 @@ def main():
     #                             training_args=training_args)
     
 
-    sampler = LESSQueryAttribution(qrels_path=data_args.train_qrels, 
-                                run_path=data_args.train_run_path,
-                                valid_path=data_args.validation_set,
-                                model_args=model_args,
-                                data_args=data_args,
-                                training_args=training_args,
-                                embeddings_path=data_args.embedding_path)
+    # sampler = LESSQueryAttribution(qrels_path=data_args.train_qrels, 
+    #                             run_path=data_args.train_run_path,
+    #                             valid_path=data_args.validation_set,
+    #                             model_args=model_args,
+    #                             data_args=data_args,
+    #                             training_args=training_args,
+    #                             embeddings_path=data_args.embedding_path)
 
 
     # sampler = GranNormQueryAttribution(qrels_path=data_args.train_qrels, 

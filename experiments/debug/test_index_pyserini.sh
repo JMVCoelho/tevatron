@@ -3,14 +3,14 @@
 #SBATCH --output=logs/%x-%j.out
 #SBATCH -e logs/%x-%j.err
 #SBATCH --partition=general
-#SBATCH --cpus-per-task=48
+#SBATCH --cpus-per-task=64
 #SBATCH --mem=150G
-#SBATCH --time=1-00:00:00
+#SBATCH --time=2-00:00:00
 #SBATCH --exclude=babel-4-36,babel-8-3,babel-4-28
 
 
 eval "$(conda shell.bash hook)"
-conda activate base
+conda activate pyserini
 
 java -version
 # python -m pyserini.index.lucene \
@@ -24,8 +24,9 @@ java -version
 
 python -m pyserini.search.lucene \
   --index /data/group_data/cx_group/lucene_indexes/marco_docs \
-  --topics /data/user_data/jmcoelho/datasets/marco/documents/gen6.query.tsv \
-  --output /data/user_data/jmcoelho/datasets/marco/documents/gen6.bm25.run.trec \
-  --batch-size 48 \
-  --threads 48 \
+  --topics /data/user_data/jmcoelho/datasets/marco/documents/gen17.query.tsv \
+  --output /data/user_data/jmcoelho/datasets/marco/documents/gen17.bm25.run.trec \
+  --batch-size 64 \
+  --threads 64 \
+  --hits 100 \
   --bm25

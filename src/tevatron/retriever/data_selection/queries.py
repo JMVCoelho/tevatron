@@ -7,6 +7,8 @@ import json
 from collections import defaultdict
 import torch.nn.functional as F
 import copy
+from torch.nn.utils import clip_grad_norm_
+
 
 
 #from opacus.grad_sample import GradSampleModule
@@ -96,8 +98,8 @@ class MATESQueryAttribution(HardNegatives):
         super().__init__(qrels_path, run_path, embeddings_path=None) # no need to store embeddings
 
         self.corpus_path = "/data/user_data/jmcoelho/datasets/marco/documents/corpus_firstp_2048.tsv" #TODO argument
-        self.corpus_path_extra = "/data/group_data/cx_group/query_generation_data/synth_corpus.tsv" #TODO argument
-        self.queries_path = "/data/group_data/cx_group/query_generation_data/gen4.query.tsv" #TODO argument
+        #self.corpus_path_extra = "/data/group_data/cx_group/query_generation_data/synth_corpus.tsv" #TODO argument
+        self.queries_path = "/data/user_data/jmcoelho/datasets/marco/documents/gen15.query.filtered.lp.tsv" #TODO argument
         self.valid_samples_path = valid_path 
         print(self.valid_samples_path)
 
@@ -106,10 +108,8 @@ class MATESQueryAttribution(HardNegatives):
         self.parse_queries()
         self.parse_corpus()
         print(len(self.did2text))
-        self.parse_extra_corpus()
-        print(len(self.did2text))
 
-        self.parse_jsonl(group_size=10)
+        self.parse_jsonl(group_size=50)
 
         self.data_args = data_args
 
@@ -236,6 +236,21 @@ class MATESQueryAttribution(HardNegatives):
 
         #         initial = loss.item()
         #         self.valid_group_initial_loss[valid_instances_group] = initial
+
+        # self.model.eval()
+
+        # with torch.no_grad():
+        #     with torch.cuda.amp.autocast(dtype=torch.bfloat16): #HACK hardcoded to bf16
+        #         qv = {k:v.to("cuda") for k, v in qv.items()}
+        #         dv = {k:v.to("cuda") for k, v in dv.items()}
+
+        #         loss = self.model(qv, dv).loss
+
+        #     initial = loss.item()
+
+        # print(initial)
+        
+        self.model.train()
         
         with torch.cuda.amp.autocast(dtype=torch.bfloat16): #HACK hardcoded to bf16
             #TRAIN
@@ -246,6 +261,8 @@ class MATESQueryAttribution(HardNegatives):
 
             loss.backward(gradient=torch.ones_like(loss))
 
+            clip_grad_norm_(self.model.parameters(), max_norm=1.0)
+
             gradients = []
             for param in self.model.parameters():
                 if param.grad is not None:
@@ -254,9 +271,11 @@ class MATESQueryAttribution(HardNegatives):
             gradient_vector = torch.cat(gradients)
             gradient_norm = torch.norm(gradient_vector).item()
             
-        optimizer = torch.optim.AdamW(self.model.parameters(), lr=1e-4)
+        optimizer = torch.optim.AdamW(self.model.parameters(), lr=1e-5)
         optimizer.step()
         optimizer.zero_grad()
+
+        self.model.eval()
 
         with torch.no_grad():
             with torch.cuda.amp.autocast(dtype=torch.bfloat16): #HACK hardcoded to bf16
@@ -269,6 +288,7 @@ class MATESQueryAttribution(HardNegatives):
         final = loss.item()
 
         self.model.load_state_dict(self.model_copy.state_dict())
+        self.model.train()
 
         #delta = initial - final # if negative its bad!
 
@@ -320,6 +340,7 @@ class MATESQueryAttribution(HardNegatives):
                     sample, loss, valid_instances_group, gradient_norm = self.get_sample_loss(query, n)
                     
                     h1.write(f"{query}\t{','.join(sample)}\t{valid_instances_group}\t{loss}\t{gradient_norm}\n")
+
 
 
     def get_initial_valid_loss(self, outpath):

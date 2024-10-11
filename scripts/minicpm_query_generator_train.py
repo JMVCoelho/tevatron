@@ -18,11 +18,11 @@ class ModelArguments:
 @dataclass
 class DataArguments:
     train_data_path: str = field(
-        default="/data/group_data/cx_group/query_generation_data/GPT4/gpt_data_for_minicpm_train.json",
+        default="/data/group_data/cx_group/query_generation_data/MARCO/marco_data_for_minicpm_train.json",
         metadata={"help": "Path to the training data."},
     )
     eval_data_path: str = field(
-        default="/data/group_data/cx_group/query_generation_data/GPT4/gpt_data_for_minicpm_eval.json",
+        default="/data/group_data/cx_group/query_generation_data/MARCO/marco_data_for_minicpm_eval.json",
         metadata={"help": "Path to the test data."},
     )
 

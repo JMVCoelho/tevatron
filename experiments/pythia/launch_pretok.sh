@@ -35,9 +35,9 @@ text_length=1024
 
 data_path=/data/user_data/jmcoelho/datasets/marco/documents
 
-train_qrels=$data_path/qrels.gen12.tsv
+train_qrels=$data_path/qrels.gen17.rr.sample.tsv
 corpus=$data_path/corpus_firstp_2048.tsv
-train_queries=$data_path/gen12.query.tsv
+train_queries=$data_path/gen17.query.rr.sample.tsv
 
 # data_path=/data/group_data/cx_group/query_generation_data/GPT4/bm25-negatives
 

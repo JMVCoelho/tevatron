@@ -49,15 +49,46 @@
 # n_val=0
 
 
-model_to_train=pythia-160m-marco-docs-bow-ct-pretrain-bs256-small-supervision
-prefix=fine-tuned
-final_model_name=pythia-160m-marco-docs-bow-ct-pretrain-bs256-supervised-warmup-minicpm-gpt4-teacher-shn-5pc-CE-filter-ep1
-save_pretok=/data/user_data/jmcoelho/datasets/marco/documents/processed_data/$model_to_train/gpt4-teacher-queries-shn-neg-5pc-ce-ep1
-do_pretok=False 
-training_data=/data/user_data/jmcoelho/embeddings/marco_docs/$model_to_train/gen12-shnegs/queries.random.shn.top100.5.txt
+# model_to_train=pythia-160m-marco-docs-bow-ct-pretrain-bs256-small-supervision
+# prefix=fine-tuned
+# final_model_name=pythia-160m-marco-docs-bow-ct-pretrain-small-supervision-bs256-generator-dpo-final-top-logprobs
+# save_pretok=/data/user_data/jmcoelho/datasets/marco/documents/processed_data/$model_to_train/ss-generator-dpo-final-top-logprobs
+# do_pretok=False 
+# training_data=/data/user_data/jmcoelho/embeddings/marco_docs/$model_to_train/gen14-shnegs/queries.random.shn.top100.txt
 
-valid_data_path=/data/user_data/jmcoelho/datasets/marco/documents/processed_data/$model_to_train/random_all_queries_10k_two_valid
+# valid_data_path=/data/user_data/jmcoelho/datasets/marco/documents/processed_data/pythia-160m-marco-docs-bow-ct-pretrain-bs256-small-supervision/random_all_queries_10k_two_valid
+# n_val=0
+
+
+# model_to_train=pythia-160m-marco-docs-bow-ct-pretrain-bs256-generator-dpo-final-top-logprobs
+# prefix=fine-tuned
+# final_model_name=pythia-160m-marco-docs-bow-ct-pretrain-bs256-generator-dpo-final-top-logprobs-e2
+# save_pretok=/data/user_data/jmcoelho/datasets/marco/documents/processed_data/$model_to_train/generator-dpo-final-top-logprobs-e2
+# do_pretok=True 
+# training_data=/data/user_data/jmcoelho/embeddings/marco_docs/$model_to_train/gen14-shnegs/queries.random.shn.top100.momentum.txt
+
+# valid_data_path=/data/user_data/jmcoelho/datasets/marco/documents/processed_data/pythia-160m-marco-docs-bow-ct-pretrain-bs256-small-supervision/random_all_queries_10k_two_valid
+# n_val=0
+
+model_to_train=pythia-160m-marco-docs-bow-ct-pretrain-bs256-generator-marco-greedy-RR-ep1
+prefix=fine-tuned
+final_model_name=pythia-160m-marco-docs-bow-ct-pretrain-bs256-generator-marco-greedy-RR-ep2
+save_pretok=/data/user_data/jmcoelho/datasets/marco/documents/processed_data/$model_to_train/generator-marco-greedy-RR-ep2
+do_pretok=True 
+training_data=/data/user_data/jmcoelho/embeddings/marco_docs/$model_to_train/gen17-shnegs/queries.random.shn.top100.rr.momentum.txt
+
+valid_data_path=/data/user_data/jmcoelho/datasets/marco/documents/processed_data/pythia-160m-marco-docs-bow-ct-pretrain-bs256-small-supervision/random_all_queries_10k_two_valid
 n_val=0
+
+# model_to_train=pythia-160m-marco-docs-bow-ct-pretrain-bs256-generator-marco-greedy--ep1
+# prefix=fine-tuned
+# final_model_name=pythia-160m-marco-docs-bow-ct-pretrain-bs256-generator-marco-greedy--ep2
+# save_pretok=/data/user_data/jmcoelho/datasets/marco/documents/processed_data/$model_to_train/generator-marco-greedy-ep2
+# do_pretok=True 
+# training_data=/data/user_data/jmcoelho/embeddings/marco_docs/$model_to_train/gen17-shnegs/queries.random.shn.top100.txt
+
+# valid_data_path=/data/user_data/jmcoelho/datasets/marco/documents/processed_data/pythia-160m-marco-docs-bow-ct-pretrain-bs256-small-supervision/random_all_queries_10k_two_valid
+# n_val=0
 
 port=$((RANDOM % (23000 - 20000 + 1) + 20000))
 

@@ -66,9 +66,16 @@ for perc in [percentage]:
 
     qids = set(top_lines[0].tolist())
 
-    with open(f"/data/user_data/jmcoelho/embeddings/marco_docs/{model}/{gen}-shnegs/queries.random.shn.top100.{perc}.txt", 'w') as out:
-        with open(file_path, 'r') as h:
+    with open(f"/data/user_data/jmcoelho/datasets/marco/documents/{gen}.query.{perc}.subset.tsv", 'w') as out:
+        with open(f"/data/user_data/jmcoelho/datasets/marco/documents/{gen}.query.tsv", 'r') as h:
             for line in h:
-                qid, negs = line.strip().split("\t")
+                qid, text = line.strip().split("\t")
                 if int(qid) in qids:
-                    out.write(f"{qid}\t{negs}\n")
+                    out.write(f"{qid}\t{text}\n")
+
+    with open(f"/data/user_data/jmcoelho/datasets/marco/documents/qrels.{gen}.{perc}.subset.tsv", 'w') as out:
+        with open(f"/data/user_data/jmcoelho/datasets/marco/documents/qrels.{gen}.tsv", 'r') as h:
+            for line in h:
+                qid, q0, did, rel = line.strip().split("\t")
+                if int(qid) in qids:
+                    out.write(f"{qid}\t{q0}\t{did}\t{rel}\n")

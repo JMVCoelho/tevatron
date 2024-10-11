@@ -5,14 +5,9 @@ from typing import Dict, Optional
 from trl import DPOTrainer, DPOConfig
 import torch
 import transformers
-from transformers import (AutoModelForCausalLM, AutoTokenizer)
+from transformers import (AutoModelForCausalLM, AutoTokenizer, AutoConfig)
 from datasets import Dataset
 import pandas as pd
-
-@dataclass
-class ModelArguments:
-    model_name_or_path: Optional[str] = field(default="openbmb/MiniCPM-2B-sft-bf16")
-
 
 @dataclass
 class TrainingArguments(transformers.TrainingArguments):
@@ -25,10 +20,11 @@ class TrainingArguments(transformers.TrainingArguments):
         },
     )
 
-PATH_TO_TRIPLETS = f"/data/user_data/jmcoelho/embeddings/marco_docs/pythia-160m-marco-docs-bow-ct-pretrain-bs256-small-supervision/gen12-shnegs/dpo-data-ids-5.tsv"
+PATH_TO_TRIPLETS = f"/data/user_data/jmcoelho/embeddings/marco_docs/pythia-160m-marco-docs-bow-ct-pretrain-bs256-supervised-warmup-minicpm-gpt4-teacher-shn-5pc-CE-filter-ep1/gen13-shnegs/dpo-data-ids-5.tsv"
 PATH_TO_RUN = "/data/user_data/jmcoelho/datasets/marco/documents"
 QID2TEXT = {}
 DID2TEXT = {}
+GEN = "gen13"
 
 with open(f"{PATH_TO_RUN}/corpus_firstp_2048.tsv", 'r') as h:
     for line in h:
@@ -39,7 +35,7 @@ with open(f"{PATH_TO_RUN}/corpus_firstp_2048.tsv", 'r') as h:
             did, title, text = line.split("\t")
             DID2TEXT[did] = f"{title} {text}"
 
-with open(f"{PATH_TO_RUN}/gen12.query.tsv", 'r') as h:
+with open(f"{PATH_TO_RUN}/{GEN}.query.tsv", 'r') as h:
     for line in h:
         qid, text = line.split("\t")
         QID2TEXT[qid] = text
@@ -64,11 +60,15 @@ def load_model_and_tokenizer(
     tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
     tokenizer.pad_token = tokenizer.eos_token
 
+    # Loading the config directly from the current checkpoint was buggy - this fixes...
+    config = AutoConfig.from_pretrained("openbmb/MiniCPM-2B-sft-bf16", trust_remote_code=True)
+
     model = AutoModelForCausalLM.from_pretrained(
         model_path,
         torch_dtype=torch.bfloat16,
         trust_remote_code=True,
         attn_implementation="flash_attention_2",
+        config = config
     )
 
     ref_model = AutoModelForCausalLM.from_pretrained(
@@ -76,6 +76,7 @@ def load_model_and_tokenizer(
         torch_dtype=torch.bfloat16,
         trust_remote_code=True,
         attn_implementation="flash_attention_2",
+        config = config
     )
 
     return model, ref_model, tokenizer
@@ -84,9 +85,9 @@ def load_model_and_tokenizer(
 if __name__ == "__main__":
     
 
-    OUTPATH = "/data/user_data/jmcoelho/models/query_generators/minicpm-2b-stf-bf6-gpt4-query-generator-dpo-e1/"
+    OUTPATH = "/data/user_data/jmcoelho/models/query_generators/minicpm-2b-stf-bf6-gpt4-query-generator-dpo-e2/"
     model, ref_model, tokenizer = load_model_and_tokenizer(
-        model_path="/data/user_data/jmcoelho/models/query_generators/minicpm-2b-stf-bf6-gpt4-query-generator/",
+        model_path="/data/user_data/jmcoelho/models/query_generators/minicpm-2b-stf-bf6-gpt4-query-generator-dpo-e1/",
     )
 
     dataset = create_hf_dataset_from_tsv(PATH_TO_TRIPLETS)
@@ -114,7 +115,7 @@ if __name__ == "__main__":
         warmup_ratio=0.1,                       
         lr_scheduler_type="cosine",             
         logging_steps=1,                       
-        save_steps=0,                            
+        save_steps=100000,                            
         evaluation_strategy="steps",            
         eval_steps=250,     
         max_length = 512,
@@ -122,7 +123,7 @@ if __name__ == "__main__":
         max_completion_length = 32,                    
         report_to="wandb",                      
         run_name="dpo_test",
-        deepspeed="/home/jmcoelho/tevatron/deepspeed/ds_zero2_config.json"
+        deepspeed="/home/jmcoelho/tevatron/deepspeed/ds_zero3_config_dpo.json"
     )
 
     dpo_trainer = DPOTrainer(

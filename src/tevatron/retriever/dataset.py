@@ -26,13 +26,21 @@ def format_passage(text: str, title: str = '', prefix: str = '', add_markers: bo
 class TrainDataset(Dataset):
     def __init__(self, data_args: DataArguments, trainer = None):
         self.data_args = data_args
-        self.train_data = load_dataset(
-            self.data_args.dataset_name,
-            self.data_args.dataset_config,
-            data_files=self.data_args.dataset_path,
-            split=self.data_args.dataset_split,
-            cache_dir=self.data_args.dataset_cache_dir,
-        )
+        # self.train_data = load_dataset(
+        #     self.data_args.dataset_name,
+        #     #self.data_args.dataset_config,
+        #     #data_files=self.data_args.dataset_path,
+
+        #     data_files={
+        #         'train': [f'en_{i:02d}.jsonl' for i in range(23)]
+        #     },
+        #     #split=self.data_args.dataset_split,
+        #     cache_dir=self.data_args.dataset_cache_dir,
+        # )
+
+        self.train_data = load_dataset("XBKYS/minicpm-embedding-data", cache_dir="/data/datasets/hf_cache/hub", data_files={
+                'train': [f'en_{i:02d}.jsonl' for i in range(23)]
+        })
         if self.data_args.dataset_number_of_shards > 1:
             self.encode_data = self.encode_data.shard(
                 num_shards=self.data_args.dataset_number_of_shards,
@@ -40,18 +48,28 @@ class TrainDataset(Dataset):
             )
         self.trainer = trainer
 
+
     def __len__(self):
-        return len(self.train_data)
+        return len(self.train_data['train'])
 
     def __getitem__(self, item) -> Tuple[str, List[str]]:
-        group = self.train_data[item]
+        group = self.train_data['train'][item]
         epoch = int(self.trainer.state.epoch) if self.trainer.state.epoch is not None else 1
 
         _hashed_seed = hash(item + self.trainer.args.seed)
 
-        query = group['query']
-        group_positives = group['positive_passages']
-        group_negatives = group['negative_passages']
+
+        if 'positive_passages' in group:
+            query = group['query']
+            group_positives = group['positive_passages']
+            group_negatives = group['negative_passages']
+
+        else: # this is for the minicpm data format
+            query = group['query'][1]
+            group_positives = [group['pos'][1]] #!!!!!!!!!!!!!!!!!!!! 
+            group_negatives = group['neg'][1:]
+
+
 
         formated_query = format_query(query, self.data_args.query_prefix)
         formated_passages = []
@@ -61,7 +79,10 @@ class TrainDataset(Dataset):
         else:
             pos_psg = group_positives[(_hashed_seed + epoch) % len(group_positives)]
         
-        formated_passages.append(format_passage(pos_psg['text'], pos_psg['title'], self.data_args.passage_prefix))
+        try:
+            formated_passages.append(format_passage(pos_psg['text'], pos_psg['title'], self.data_args.passage_prefix))
+        except Exception:
+            formated_passages.append(format_passage(pos_psg, "", self.data_args.passage_prefix))
 
         negative_size = self.data_args.train_group_size - 1
         if len(group_negatives) < negative_size:
@@ -78,9 +99,13 @@ class TrainDataset(Dataset):
             negs = negs[_offset: _offset + negative_size]
 
         for neg_psg in negs:
-            formated_passages.append(format_passage(neg_psg['text'], neg_psg['title'], self.data_args.passage_prefix))
+            try:
+                formated_passages.append(format_passage(neg_psg['text'], neg_psg['title'], self.data_args.passage_prefix))
+            except Exception:
+                formated_passages.append(format_passage(neg_psg, "", self.data_args.passage_prefix))
 
         return formated_query, formated_passages
+    
     
 class TrainDatasetPreprocessed(Dataset):
     def __init__(self, data_args: DataArguments, trainer = None, is_eval=False):
@@ -314,6 +339,7 @@ class EncodeDataset(Dataset):
             data_files=self.data_args.dataset_path,
             split=self.data_args.dataset_split,
             cache_dir=self.data_args.dataset_cache_dir,
+            trust_remote_code=True
         )
         if self.data_args.dataset_number_of_shards > 1:
             self.encode_data = self.encode_data.shard(

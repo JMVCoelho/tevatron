@@ -3,8 +3,8 @@ import json
 from tqdm import tqdm
 import sys
 
-gen = sys.argv[1]
-
+inpath = sys.argv[1]
+outpath = sys.argv[2]
 # converts a tsv "text_id, title, text" to jsonl {text_id, text, title}
 
 def tsv_to_jsonl(input_tsv, output_jsonl):
@@ -20,7 +20,7 @@ def tsv_to_jsonl(input_tsv, output_jsonl):
             json_data = {'query_id': qid, 'query': f"{text}"}
             jsonl_file.write(json.dumps(json_data) + '\n')
 
-input_file = f"/data/user_data/jmcoelho/datasets/marco/documents/{gen}.query.tsv"
-output = f"/data/user_data/jmcoelho/datasets/marco/documents/{gen}.query.jsonl"
+# input_file = f"/data/user_data/jmcoelho/datasets/marco/documents/{gen}.query.tsv"
+# output = f"/data/user_data/jmcoelho/datasets/marco/documents/{gen}.query.jsonl"
 
-tsv_to_jsonl(input_file, output)
+tsv_to_jsonl(inpath, outpath)
