@@ -5,7 +5,7 @@
 #SBATCH --partition=general
 #SBATCH --gres=gpu:6000Ada:1
 #SBATCH --cpus-per-task=1
-#SBATCH --mem=15G
+#SBATCH --mem=50G
 #SBATCH --time=2-00:00:00
 
 export TRANSFORMERS_CACHE=/data/datasets/hf_cache
@@ -15,7 +15,7 @@ conda activate tevatron
 
 module load cuda-12.1
 
-trained_model_name=pythia-160m-marco-docs-bow-ct-pretrain-bs256-generator-marco-greedy-RR-ep1
+trained_model_name=pythia-160m-marco-docs-bow-ct-pretrain-bs256-llama-clueweb-supervision
 prefix=fine-tuned
 
 EMBEDDING_OUTPUT_DIR=/data/user_data/jmcoelho/embeddings/marco_docs
@@ -36,8 +36,8 @@ python -m tevatron.retriever.driver.encode \
   --per_device_eval_batch_size 300 \
   --query_max_len 32 \
   --passage_max_len 1024 \
-  --dataset_path "/data/user_data/jmcoelho/datasets/marco/documents/gen17.query.rr.sample.jsonl" \
-  --encode_output_path $EMBEDDING_OUTPUT_DIR/$trained_model_name/query-gen17-rr-sample.pkl
+  --dataset_path "/data/user_data/jmcoelho/datasets/marco/documents/train.query.jsonl" \
+  --encode_output_path $EMBEDDING_OUTPUT_DIR/$trained_model_name/query-train.pkl
 
 
 

@@ -3,10 +3,11 @@
 #SBATCH --output=logs/%x-%j.out
 #SBATCH -e logs/%x-%j.err
 #SBATCH --partition=general
-#SBATCH --gres=gpu:6000Ada:1
+#SBATCH --gres=gpu:A6000:1
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=15G
 #SBATCH --time=2-00:00:00
+#SBATCH --exclude=babel-4-36,babel-8-3,babel-4-28
 
 export TRANSFORMERS_CACHE=/data/datasets/hf_cache
 
@@ -49,7 +50,7 @@ all_data=(
 for test_data in "${all_data[@]}"; do
 
   EMBEDDING_OUTPUT_DIR=/data/user_data/jmcoelho/embeddings/marco_docs
-  trained_model_name=pythia-160m-marco-docs-bow-ct-pretrain-bs256-llama-clueweb
+  trained_model_name=pythia-160m-marco-docs-bow-ct-pretrain-bs256-llama-clueweb-supervision-e2
   prefix=fine-tuned
 
   echo $test_data
@@ -74,7 +75,7 @@ for test_data in "${all_data[@]}"; do
     --dataset_config $test_data \
     --encode_output_path $EMBEDDING_OUTPUT_DIR/$trained_model_name/corpus.$test_data.${shard}.pkl \
     --add_markers True \
-    --dataset_number_of_shards 4 \
+    --dataset_number_of_shards 8 \
     --dataset_shard_index ${shard}
 
 

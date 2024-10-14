@@ -5,7 +5,7 @@
 #SBATCH --partition=general
 #SBATCH --gres=gpu:6000Ada:4
 #SBATCH --cpus-per-task=4
-#SBATCH --mem=32G
+#SBATCH --mem=200G
 #SBATCH --time=2-00:00:00
 #SBATCH --exclude=babel-4-36,babel-8-3,babel-4-28
 
@@ -48,9 +48,9 @@ deepspeed --include localhost:0,1,2,3 --master_port $port --module tevatron.retr
   --append_eos_token \
   --normalize \
   --temperature 0.01 \
-  --per_device_train_batch_size 64 \
+  --per_device_train_batch_size 128 \
   --per_device_eval_batch_size 32 \
-  --train_group_size 10 \
+  --train_group_size 6 \
   --learning_rate 1e-4 \
   --query_max_len 32 \
   --passage_max_len 1024 \

@@ -70,15 +70,26 @@
 # valid_data_path=/data/user_data/jmcoelho/datasets/marco/documents/processed_data/pythia-160m-marco-docs-bow-ct-pretrain-bs256-small-supervision/random_all_queries_10k_two_valid
 # n_val=0
 
-model_to_train=pythia-160m-marco-docs-bow-ct-pretrain-bs256-generator-marco-greedy-RR-ep1
+# model_to_train=pythia-160m-marco-docs-bow-ct-pretrain-bs256-generator-marco-greedy-ALL-ep1
+# prefix=fine-tuned
+# final_model_name=pythia-160m-marco-docs-bow-ct-pretrain-bs256-generator-marco-greedy-ALL-ep2-momentum
+# save_pretok=/data/user_data/jmcoelho/datasets/marco/documents/processed_data/$model_to_train/generator-marco-greedy-ALL-ep2-momentum
+# do_pretok=True 
+# training_data=/data/user_data/jmcoelho/embeddings/marco_docs/$model_to_train/gen17-shnegs/queries.random.shn.top100.momentum.txt 
+
+# valid_data_path=/data/user_data/jmcoelho/datasets/marco/documents/processed_data/pythia-160m-marco-docs-bow-ct-pretrain-bs256-small-supervision/random_all_queries_10k_two_valid
+# n_val=0
+
+model_to_train=pythia-160m-marco-docs-bow-ct-pretrain-bs256-llama-clueweb-supervision
 prefix=fine-tuned
-final_model_name=pythia-160m-marco-docs-bow-ct-pretrain-bs256-generator-marco-greedy-RR-ep2
-save_pretok=/data/user_data/jmcoelho/datasets/marco/documents/processed_data/$model_to_train/generator-marco-greedy-RR-ep2
+final_model_name=pythia-160m-marco-docs-bow-ct-pretrain-bs256-llama-clueweb-supervision-e2
+save_pretok=/data/user_data/jmcoelho/datasets/marco/documents/processed_data/$model_to_train/marco-train-ALL-e2
 do_pretok=True 
-training_data=/data/user_data/jmcoelho/embeddings/marco_docs/$model_to_train/gen17-shnegs/queries.random.shn.top100.rr.momentum.txt
+training_data=/data/user_data/jmcoelho/embeddings/marco_docs/$model_to_train/marco-train/queries.random.shn.top100.momentum.txt 
 
 valid_data_path=/data/user_data/jmcoelho/datasets/marco/documents/processed_data/pythia-160m-marco-docs-bow-ct-pretrain-bs256-small-supervision/random_all_queries_10k_two_valid
 n_val=0
+
 
 # model_to_train=pythia-160m-marco-docs-bow-ct-pretrain-bs256-generator-marco-greedy--ep1
 # prefix=fine-tuned

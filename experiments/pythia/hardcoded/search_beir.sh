@@ -47,7 +47,7 @@ all_data=(
 for test_data in "${all_data[@]}"; do
 
   EMBEDDING_OUTPUT_DIR=/data/user_data/jmcoelho/embeddings/marco_docs
-  trained_model_name=pythia-160m-marco-docs-bow-ct-pretrain-bs256-llama-clueweb
+  trained_model_name=pythia-160m-marco-docs-bow-ct-pretrain-bs256-llama-clueweb-supervision-e2
 
   echo $test_data
 
@@ -77,4 +77,7 @@ for test_data in "${all_data[@]}"; do
   echo $test_data
   python -m pyserini.eval.trec_eval -c -mrecall.100 -mndcg_cut.10 beir-v1.0.0-${test_data}-test $EMBEDDING_OUTPUT_DIR/$trained_model_name/run.$test_data.trec
   echo "################"
+  rm $EMBEDDING_OUTPUT_DIR/$trained_model_name/corpus.$test_data.*.pkl
+  rm $EMBEDDING_OUTPUT_DIR/$trained_model_name/query-test-$test_data.pkl
+  rm $EMBEDDING_OUTPUT_DIR/$trained_model_name/run.$test_data.trec
 done
