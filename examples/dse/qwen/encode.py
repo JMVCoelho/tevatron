@@ -10,16 +10,17 @@ from tqdm import tqdm
 import torch
 
 from torch.utils.data import DataLoader
-from transformers import AutoTokenizer
+from transformers import AutoProcessor
 from transformers import (
     HfArgumentParser,
 )
 
-from tevatron.retriever.arguments import ModelArguments, DataArguments, \
-    TevatronTrainingArguments as TrainingArguments
-from tevatron.retriever.dataset import EncodeDataset
-from tevatron.retriever.collator import EncodeCollator
-from tevatron.retriever.modeling import EncoderOutput, DenseModel
+
+from dataset import EncodeDataset
+from collator import EncodeCollator
+from arguments import ModelArguments, DataArguments, TevatronTrainingArguments as TrainingArguments
+from dse import EncoderOutput, DSEModel
+
 
 logger = logging.getLogger(__name__)
 
@@ -45,28 +46,22 @@ def main():
     )
 
 
-    tokenizer = AutoTokenizer.from_pretrained(
+    processor = AutoProcessor.from_pretrained(
         model_args.tokenizer_name if model_args.tokenizer_name else model_args.model_name_or_path,
-        cache_dir=model_args.cache_dir
+        cache_dir=model_args.cache_dir,
+        trust_remote_code=True,
+        min_pixels=28*28,
+        max_pixels=2560*28*28,
     )
-    if tokenizer.pad_token_id is None:
-        tokenizer.pad_token_id = tokenizer.eos_token_id
-    tokenizer.padding_side = 'right'
-
-    if training_args.bf16:
-        torch_dtype = torch.bfloat16
-    elif training_args.fp16:
-        torch_dtype = torch.float16
-    else:
-        torch_dtype = torch.float32
     
-    model = DenseModel.load(
+    processor.tokenizer.padding_side = "left"
+    
+    model = DSEModel.load(
         model_args.model_name_or_path,
         pooling=model_args.pooling,
         normalize=model_args.normalize,
         lora_name_or_path=model_args.lora_name_or_path,
         cache_dir=model_args.cache_dir,
-        torch_dtype=torch_dtype
     )
 
     encode_dataset = EncodeDataset(
@@ -75,7 +70,7 @@ def main():
 
     encode_collator = EncodeCollator(
         data_args=data_args,
-        tokenizer=tokenizer,
+        processor=processor,
     )
 
     encode_loader = DataLoader(
@@ -91,26 +86,18 @@ def main():
     model = model.to(training_args.device)
     model.eval()
 
-    dtype = None
-    if training_args.fp16:
-        print("Set encoding precision: fp16")
-        dtype = torch.float16
-    elif training_args.bf16:
-        print("Set encoding precision: bf16")
-        dtype = torch.bfloat16
-
     for (batch_ids, batch) in tqdm(encode_loader):
         lookup_indices.extend(batch_ids)
-        with torch.cuda.amp.autocast(dtype=dtype) if dtype is not None else nullcontext():
+        with torch.cuda.amp.autocast() if training_args.fp16 or training_args.bf16 else nullcontext():
             with torch.no_grad():
                 for k, v in batch.items():
                     batch[k] = v.to(training_args.device)
                 if data_args.encode_is_query:
                     model_output: EncoderOutput = model(query=batch)
-                    encoded.append(model_output.q_reps.cpu().detach().numpy())
+                    encoded.append(model_output.q_reps.cpu().detach().float().numpy())
                 else:
                     model_output: EncoderOutput = model(passage=batch)
-                    encoded.append(model_output.p_reps.cpu().detach().numpy())
+                    encoded.append(model_output.p_reps.cpu().detach().float().numpy())
 
     encoded = np.concatenate(encoded)
 
