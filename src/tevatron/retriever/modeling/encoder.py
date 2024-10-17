@@ -120,7 +120,7 @@ class EncoderModel(nn.Module):
             **hf_kwargs,
     ):  
         try:
-            base_model = cls.TRANSFORMER_CLS.from_pretrained(model_args.model_name_or_path, **hf_kwargs)
+            base_model = cls.TRANSFORMER_CLS.from_pretrained(model_args.model_name_or_path, attn_implementation="flash_attention_2", **hf_kwargs)
         except Exception:
             print("Trying to load from local files with custom state dict")
             state_dict = torch.load(f"{model_args.model_name_or_path}/pytorch_model.bin")

@@ -23,6 +23,57 @@ def format_passage(text: str, title: str = '', prefix: str = '', add_markers: bo
         return f'{prefix} {title.strip()} {text.strip()}'.strip()
 
 
+class Cropping():
+    def __init__(self, ratio_min: float = 0.1, ratio_max: float = 0.5):
+        self.ratio_min = ratio_min
+        self.ratio_max = ratio_max
+
+    def augment(self, data: str) -> str:
+        words = data.split()
+        ratio = random.uniform(self.ratio_min, self.ratio_max)
+        length = int(len(words) * ratio)
+        start = random.randint(0, len(words) - length)
+        end = start + length
+        cropped_words = words[start:end] 
+        return ' '.join(cropped_words)  
+
+    def __call__(self, data: List[int]) -> List[int]:
+        return self.augment(data)
+    
+
+class PretrainDataset(Dataset):
+    def __init__(self, data_args: DataArguments, trainer = None):
+        self.data_args = data_args
+        self.train_data = load_dataset(
+            self.data_args.dataset_name,
+            self.data_args.dataset_config,
+            data_files=self.data_args.dataset_path,
+            split=self.data_args.dataset_split,
+            cache_dir=self.data_args.dataset_cache_dir,
+        )
+        if self.data_args.dataset_number_of_shards > 1:
+            self.encode_data = self.encode_data.shard(
+                num_shards=self.data_args.dataset_number_of_shards,
+                index=self.data_args.dataset_shard_index,
+            )
+        self.trainer = trainer
+
+        self.strategy = Cropping()
+
+
+    def __len__(self):
+        return len(self.train_data)
+
+    def __getitem__(self, item) -> Tuple[str, List[str]]:
+        group = self.train_data[item]
+
+        content = f"{group['title']} {group['text']}" # assumes dataset is a jsonl with title and text fields
+
+        formated_query = self.strategy(content)
+        formated_passages = [self.strategy(content)]
+
+        return formated_query, formated_passages
+    
 class TrainDataset(Dataset):
     def __init__(self, data_args: DataArguments, trainer = None):
         self.data_args = data_args

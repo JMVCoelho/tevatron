@@ -24,6 +24,11 @@ class FaissFlatSearcher:
     def search(self, q_reps: np.ndarray, k: int):
         return self.index.search(q_reps, k)
 
+    def move_index_to_gpu(self):
+        logger.info("Moving index to GPU(s)")
+        res = faiss.StandardGpuResources()
+        self.index = faiss.index_cpu_to_gpu(res, 0, self.index)
+
     def batch_search(self, q_reps: np.ndarray, k: int, batch_size: int, quiet: bool=False):
         num_query = q_reps.shape[0]
         all_scores = []

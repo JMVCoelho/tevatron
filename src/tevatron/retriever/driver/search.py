@@ -77,6 +77,8 @@ def main():
     q_reps, q_lookup = pickle_load(args.query_reps)
     q_reps = q_reps
 
+    retriever.move_index_to_gpu()
+
     logger.info('Index Search Start')
     all_scores, psg_indices = search_queries(retriever, q_reps, look_up, args)
     logger.info('Index Search Finished')
