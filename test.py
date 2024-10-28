@@ -1,36 +1,53 @@
-# import transformers
+# import pickle
 # import torch
+# import io
+# from huggingface_hub import login
+# from datasets import load_dataset
 
-# state_dict = torch.load("/data/user_data/jmcoelho/models/pythia-160m-1024-marco-docs-hf/pytorch_model.bin")
 
-# model = transformers.AutoModel.from_pretrained(
-#     "/data/user_data/jmcoelho/models/pythia-160m-1024-marco-docs-hf/", local_files_only=True, state_dict=state_dict, attn_implementation="flash_attention_2"
-# )
+# class CPU_Unpickler(pickle.Unpickler):
+#     def find_class(self, module, name):
+#         if module == 'torch.storage' and name == '_load_from_bytes':
+#             return lambda b: torch.load(io.BytesIO(b), map_location='cpu')
+#         else: return super().find_class(module, name)
 
-# print(model.__class__)
+# all_scores = []
+# for i in range(4):
+#     with open(f"rerank_minicpm_dataset_{i}", 'rb') as h: 
+#         shard_scores = CPU_Unpickler(h).load()
+#         all_scores.extend([score.item() for score in shard_scores])
 
-import pickle
 
-with open('/data/user_data/jmcoelho/embeddings/marco_docs/pythia-160m-marco-docs/corpus.1.pkl', 'rb') as h:
-    x = pickle.load(h)
 
-print(len(x))
-print(len(x[1]))
+# login("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")
 
-with open('/data/user_data/jmcoelho/embeddings/marco_docs/pythia-160m-marco-docs/corpus.2.pkl', 'rb') as h:
-    x = pickle.load(h)
+# data_files = [f"en_{str(i).zfill(2)}.jsonl" for i in range(24)]  # Adjust range if there are more/less files
 
-print(len(x))
-print(len(x[1]))
+# dataset = load_dataset("XBKYS/minicpm-embedding-data", data_files=data_files, split="train")
 
-with open('/data/user_data/jmcoelho/embeddings/marco_docs/pythia-160m-marco-docs/corpus.3.pkl', 'rb') as h:
-    x = pickle.load(h)
+# assert len(dataset) == len(all_scores)
 
-print(len(x))
-print(len(x[1]))
+# dataset = dataset.add_column("bge_ranker_scores", all_scores)
+# print(dataset)
 
-with open('/data/user_data/jmcoelho/embeddings/marco_docs/pythia-160m-marco-docs/corpus.0.pkl', 'rb') as h:
-    x = pickle.load(h)
+# # dataset.save_to_disk("/data/jcoelho/datasets/minicpm_embedding_unsup_queries")
 
-print(len(x))
-print(len(x[1]))
+# sorted_dataset = dataset.sort("bge_ranker_scores", reverse=True)
+# top_entries_dataset = sorted_dataset.select(range(1500000))
+# print(top_entries_dataset)
+
+# top_entries_dataset.save_to_disk("/data/jcoelho/datasets/minicpm_embedding_unsup_queries_1.5M_filtered")
+
+
+from datasets import load_from_disk
+
+# Load the dataset
+dataset = load_from_disk("/data/jcoelho/datasets/minicpm_embedding_unsup_queries")
+
+# Filter to keep only entries with bge_ranker_scores > 0
+filtered_dataset = dataset.filter(lambda x: x['bge_ranker_scores'] > 0)
+
+# Print the number of entries that meet the condition
+print(f"Number of entries with bge_ranker_scores > 0: {len(filtered_dataset)}")
+
+filtered_dataset.save_to_disk("/data/jcoelho/datasets/minicpm_embedding_unsup_queries_2.1M_filtered")

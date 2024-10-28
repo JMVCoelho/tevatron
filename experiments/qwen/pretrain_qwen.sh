@@ -19,16 +19,16 @@
 eval "$(conda shell.bash hook)"
 conda activate cmu-llms-hw3
 
-trained_model_name=Qwen2.5-0.5B-marco-cpt-512-contrastive-pretrain
+trained_model_name=Qwen2.5-0.5B-marco-cpt-512-bidirectional-attn-contrastive-pretrain-avg-pool
 
 deepspeed --include localhost:0,1,2,3 --master_port 26500 --module tevatron.retriever.driver.pretrain \
   --deepspeed deepspeed/ds_zero3_config.json \
   --output_dir /user/home/jcoelho/Qwen/models/$trained_model_name \
-  --model_name_or_path "/user/home/jcoelho/Qwen/models/Qwen2.5-0.5B-marco-cpt-512" \
+  --model_name_or_path "/user/home/jcoelho/Qwen/models/Qwen2.5-0.5B-marco-cpt-512-bidirectional-attn" \
   --dataset_path "/data/jcoelho/datasets/babel/corpus_firstp_2048.jsonl" \
   --save_steps 1000000 \
   --bf16 \
-  --pooling eos \
+  --pooling avg \
   --gradient_checkpointing \
   --append_eos_token \
   --normalize \

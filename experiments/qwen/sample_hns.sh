@@ -19,4 +19,9 @@
 eval "$(conda shell.bash hook)"
 conda activate cmu-llms-hw3
 
-python scripts/hn_mining_ids.py --qrels_path $1 --run_path $2 --out_path $3 --n $4
+
+if [ -z "$5" ]; then
+    python scripts/hn_mining_ids.py --qrels_path "$1" --run_path "$2" --out_path "$3" --n "$4"
+else
+    python scripts/hn_mining_ids.py --qrels_path "$1" --run_path "$2" --out_path "$3" --n "$4" --prev_run_path "$5"
+fi

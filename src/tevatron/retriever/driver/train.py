@@ -10,7 +10,7 @@ from transformers import (
 
 from tevatron.retriever.arguments import ModelArguments, DataArguments, \
     TevatronTrainingArguments as TrainingArguments
-from tevatron.retriever.dataset import TrainDataset, TrainDatasetPreprocessed
+from tevatron.retriever.dataset import TrainDataset, TrainDatasetPreprocessed, MiniCPM_UnsupervisedDataset
 from tevatron.retriever.collator import TrainCollator, TrainCollatorPreprocessed
 from tevatron.retriever.modeling import DenseModel
 from tevatron.retriever.trainer import TevatronTrainer as Trainer
@@ -74,9 +74,22 @@ def main():
         cache_dir=model_args.cache_dir,
     )
 
-    train_dataset = TrainDataset(data_args) if data_args.dataset_path is None else TrainDatasetPreprocessed(data_args)
-    collator = TrainCollator(data_args, tokenizer) if data_args.dataset_path is None else TrainCollatorPreprocessed(data_args, tokenizer)
-    train_dataset.tokenizer = tokenizer
+    if "XBKYS/minicpm-embedding-data" == data_args.dataset_name:
+        logger.info("Special dataset detected: MiniCPM unsupervised queries. Loading.")
+        num_negs = 5
+        num_pos = 1
+        if data_args.train_group_size != num_negs + num_pos:
+            logger.info(f"This dataset contains {num_pos} positive and {num_negs} negative per query. Setting group_size to {num_negs + num_pos}.")
+            data_args.train_group_size = num_negs + num_pos
+            
+        train_dataset = MiniCPM_UnsupervisedDataset(data_args)
+        collator = TrainCollator(data_args, tokenizer)
+        train_dataset.tokenizer = tokenizer
+
+    else:
+        train_dataset = TrainDataset(data_args) if data_args.dataset_path is None else TrainDatasetPreprocessed(data_args)
+        collator = TrainCollator(data_args, tokenizer) if data_args.dataset_path is None else TrainCollatorPreprocessed(data_args, tokenizer)
+        train_dataset.tokenizer = tokenizer
 
     trainer_cls = GCTrainer if training_args.grad_cache else Trainer
     trainer = trainer_cls(

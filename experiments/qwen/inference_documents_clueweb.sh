@@ -10,7 +10,7 @@
 #SBATCH --cpus-per-task 12 # number cpus (threads) per task
 
 # 327680
-#SBATCH --mem=50G # Memory - Use up to 2GB per requested CPU as a rule of thumb
+#SBATCH --mem=100G # Memory - Use up to 2GB per requested CPU as a rule of thumb
 #SBATCH --time=0 # No time limit
 
 #SBATCH --gres=gpu:nvidia_a100-pcie-40gb:1
@@ -24,10 +24,10 @@ shard=$1
 trained_model_name=$2
 pooling=$3
 
-echo "Using model $2 to encode shard $shard of MARCO corpus with $3 pooling"
+echo "Using model $2 to encode shard $shard of CLUEWEB corpus with $3 pooling"
 
 EMBEDDING_OUTPUT_DIR=/data/jcoelho/embeddings/babel/
-OUTPUT_FILE=$EMBEDDING_OUTPUT_DIR/$trained_model_name/corpus.${shard}.pkl
+OUTPUT_FILE=$EMBEDDING_OUTPUT_DIR/$trained_model_name/corpus.cweb.${shard}.pkl
 
 mkdir $EMBEDDING_OUTPUT_DIR/$trained_model_name
 
@@ -48,10 +48,10 @@ else
     --pooling $pooling \
     --append_eos_token \
     --normalize \
-    --per_device_eval_batch_size 600 \
+    --per_device_eval_batch_size 1200 \
     --query_max_len 32 \
     --passage_max_len 512 \
-    --dataset_path "/data/jcoelho/datasets/babel/corpus_firstp_2048.jsonl" \
+    --dataset_path "/data/jcoelho/clueweb22_indexes/raw/clueweb_subset_en0000_en0004.seqid.jsonl" \
     --add_markers True \
     --dataset_number_of_shards 4 \
     --dataset_shard_index ${shard} \

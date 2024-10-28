@@ -26,7 +26,8 @@ conda activate cmu-llms-hw3
 
 
 trained_model_name=$1
-echo "Using model $trained_model_name to encode queries"
+pooling=$2
+echo "Using model $trained_model_name to encode MARCO dev queries with $pooling pooling"
 
 EMBEDDING_OUTPUT_DIR=/data/jcoelho/embeddings/babel/
 mkdir $EMBEDDING_OUTPUT_DIR/$trained_model_name
@@ -38,7 +39,7 @@ python -m tevatron.retriever.driver.encode \
   --query_prefix "" \
   --passage_prefix "" \
   --bf16 \
-  --pooling eos \
+  --pooling $pooling \
   --append_eos_token \
   --normalize \
   --encode_is_query \
