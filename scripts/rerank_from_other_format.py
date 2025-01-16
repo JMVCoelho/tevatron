@@ -2,25 +2,22 @@ import sys
 import torch
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 from tqdm import tqdm
-from datasets import load_dataset
+from datasets import load_from_disk
 import json
 
 import math
 
 from huggingface_hub import login
 
-dataset = load_dataset(
-    "json",
-    data_files="/data/user_data/jmcoelho/datasets/llama_generator/base_100k_set2/processed.jsonl",
-    split="train",
+dataset = load_from_disk(
+    "/data/user_data/jmcoelho/datasets/minicpm_embedding_unsupervised_queries/llama_generated_clean_Qwen2.5-0.5B-bidirectional-attn-mntp_all_queries_except_warmup",
 )
-
 
 pairs = []
 
 for example in tqdm(dataset):
-    query = example["query"]
-    positive = example["positive"]
+    query = example["query"][1]
+    positive = example["pos"][1]
     pairs.append((query, positive))
 
 print(pairs[0])
@@ -55,9 +52,7 @@ with torch.no_grad():
         all_scores.extend(sample_scores)
 
 
-dataset = dataset.add_column("score", all_scores)
-
-output_file = f"/data/user_data/jmcoelho/datasets/llama_generator/base_100k_set2/processed_with_ranker_score.jsonl"
-with open(output_file, "w") as f:
-    for example in dataset:
-        f.write(json.dumps(example) + "\n")
+dataset = dataset.add_column("re_ranker_score", all_scores)
+dataset.save_to_disk(
+    "/data/user_data/jmcoelho/datasets/minicpm_embedding_unsupervised_queries/llama_generated_clean_Qwen2.5-0.5B-bidirectional-attn-mntp_all_queries_except_warmup_with_rr_score"
+)

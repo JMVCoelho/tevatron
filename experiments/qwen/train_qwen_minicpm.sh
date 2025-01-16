@@ -1,37 +1,50 @@
 #!/bin/bash
 
-#SBATCH --job-name=qwen-pretrain
-# The line below writes to a logs dir inside the one where sbatch was called
-# %x will be replaced by the job name, and %j by the job id
-
+#SBATCH --job-name=qwen-retriever-train
 #SBATCH --output=logs/%x-%j.out
 #SBATCH -e logs/%x-%j.err
-#SBATCH -n 1 # Number of tasks
-#SBATCH --cpus-per-task 12 # number cpus (threads) per task
-
-# 327680
-#SBATCH --mem=300000 # Memory - Use up to 2GB per requested CPU as a rule of thumb
-#SBATCH --time=0 # No time limit
-
-#SBATCH --gres=gpu:nvidia_a100-pcie-40gb:4
+#SBATCH --partition=general
+#SBATCH --cpus-per-task=12
+#SBATCH --mem=200G
+#SBATCH --gres=gpu:L40S:8
+#SBATCH --time=2-00:00:00
+#SBATCH --exclude=babel-13-5,babel-13-13,babel-13-17,babel-13-29,babel-3-5,babel-4-1
 
 
 eval "$(conda shell.bash hook)"
-conda activate cmu-llms-hw3
+conda activate tevatron
 
-model_to_train=Qwen2.5-0.5B-bidirectional-attn-wavg-pool-mntp
-trained_model_name=Qwen2.5-0.5B-bidirectional-attn-wavg-pool-mntp-minicpmembed-RR-2.1M-filtered-unsupervised-queries
+
+module load cuda-12.4
+
+#export TRANSFORMERS_CACHE=/data/datasets/hf_cache
+export HF_HOME=/data/datasets/hf_cache
+export HF_TOKEN=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 
+export NCCL_P2P_DISABLE=1
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+model_to_train=Qwen2.5-0.5B-bidirectional-attn-avg-pool-mntp-minicpmembed-random-20k-synth-only-8gpu-6negs
+trained_model_name=Qwen2.5-0.5B-bidirectional-attn-avg-pool-mntp-minicpmembed-100k-baseset2-mates-dpo7
 group_size=6
-pooling=wavg
+pooling=avg
 port=$((RANDOM % (23000 - 20000 + 1) + 20000))
 
+  # \
 
-deepspeed --include localhost:0,1,2,3 --master_port $port --module tevatron.retriever.driver.train \
+#  --eval_dataset_path /data/user_data/jmcoelho/embeddings/marco_docs/Qwen2.5-0.5B-bidirectional-attn-avg-pool-mntp-finetune-ep1/pretokenized/val.jsonl \
+  #--checkpoint "/data/user_data/jmcoelho/models/$model_to_train" \
+
+deepspeed --include localhost:0,1,2,3,4,5,6,7 --master_port $port --module tevatron.retriever.driver.train \
   --deepspeed deepspeed/ds_zero3_config.json \
-  --output_dir /user/home/jcoelho/Qwen/models/$trained_model_name \
-  --model_name_or_path "/user/home/jcoelho/Qwen/models/$model_to_train" \
+  --dataset_cache_dir /data/datasets/hf_cache \
+  --cache_dir /data/datasets/hf_cache \
+  --output_dir /data/user_data/jmcoelho/models/$trained_model_name \
+  --model_name_or_path "/data/user_data/jmcoelho/models/$model_to_train" \
+  --checkpoint "/data/user_data/jmcoelho/models/$model_to_train" \
   --dataset_name "XBKYS/minicpm-embedding-data" \
-  --save_steps 1000000 \
+  --save_steps 20000000 \
+  --eval_steps 25 \
+  --per_device_eval_batch_size 100 \
+  --evaluation_strategy steps \
   --bf16 \
   --pooling $pooling \
   --gradient_checkpointing \

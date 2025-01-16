@@ -25,43 +25,56 @@ class TrainCollator:
             all_passages.extend(f[1])
         q_collated = self.tokenizer(
             all_queries,
-            padding=False, 
+            padding=False,
             truncation=True,
-            max_length=self.data_args.query_max_len-1 if self.data_args.append_eos_token else self.data_args.query_max_len,
+            max_length=(
+                self.data_args.query_max_len - 1
+                if self.data_args.append_eos_token
+                else self.data_args.query_max_len
+            ),
             return_attention_mask=False,
             return_token_type_ids=False,
             add_special_tokens=True,
         )
         d_collated = self.tokenizer(
             all_passages,
-            padding=False, 
+            padding=False,
             truncation=True,
-            max_length=self.data_args.passage_max_len-1 if self.data_args.append_eos_token else self.data_args.passage_max_len,
+            max_length=(
+                self.data_args.passage_max_len - 1
+                if self.data_args.append_eos_token
+                else self.data_args.passage_max_len
+            ),
             return_attention_mask=False,
             return_token_type_ids=False,
             add_special_tokens=True,
         )
 
         if self.data_args.append_eos_token:
-            q_collated['input_ids'] = [q + [self.tokenizer.eos_token_id] for q in q_collated['input_ids']]
-            d_collated['input_ids'] = [d + [self.tokenizer.eos_token_id] for d in d_collated['input_ids']]
-        
+            q_collated["input_ids"] = [
+                q + [self.tokenizer.eos_token_id] for q in q_collated["input_ids"]
+            ]
+            d_collated["input_ids"] = [
+                d + [self.tokenizer.eos_token_id] for d in d_collated["input_ids"]
+            ]
+
         q_collated = self.tokenizer.pad(
             q_collated,
-            padding=True, 
+            padding=True,
             pad_to_multiple_of=self.data_args.pad_to_multiple_of,
             return_attention_mask=True,
-            return_tensors='pt',
+            return_tensors="pt",
         )
         d_collated = self.tokenizer.pad(
             d_collated,
-            padding=True, 
+            padding=True,
             pad_to_multiple_of=self.data_args.pad_to_multiple_of,
             return_attention_mask=True,
-            return_tensors='pt',
+            return_tensors="pt",
         )
         return q_collated, d_collated
-    
+
+
 @dataclass
 class TrainCollatorPreprocessed:
     data_args: DataArguments
@@ -78,26 +91,26 @@ class TrainCollatorPreprocessed:
 
         if self.data_args.append_eos_token:
             for q in qq:
-                q['input_ids'] = q['input_ids'] + [self.tokenizer.eos_token_id]
-                
+                q["input_ids"] = q["input_ids"] + [self.tokenizer.eos_token_id]
+
             for d in dd:
-                d['input_ids'] = d['input_ids'] + [self.tokenizer.eos_token_id]
+                d["input_ids"] = d["input_ids"] + [self.tokenizer.eos_token_id]
 
         q_collated = self.tokenizer.pad(
             qq,
-            padding='max_length',
+            padding="max_length",
             max_length=self.data_args.query_max_len,
             pad_to_multiple_of=self.data_args.pad_to_multiple_of,
             return_tensors="pt",
         )
         d_collated = self.tokenizer.pad(
             dd,
-            padding='max_length',
+            padding="max_length",
             max_length=self.data_args.passage_max_len,
             pad_to_multiple_of=self.data_args.pad_to_multiple_of,
             return_tensors="pt",
         )
-        
+
         return q_collated, d_collated
 
 
@@ -113,23 +126,32 @@ class EncodeCollator:
         """
         text_ids = [x[0] for x in features]
         texts = [x[1] for x in features]
-        max_length = self.data_args.query_max_len if self.data_args.encode_is_query else self.data_args.passage_max_len
+        max_length = (
+            self.data_args.query_max_len
+            if self.data_args.encode_is_query
+            else self.data_args.passage_max_len
+        )
         collated_texts = self.tokenizer(
             texts,
-            padding=False, 
+            padding=False,
             truncation=True,
-            max_length=max_length-1 if self.data_args.append_eos_token else max_length,
+            max_length=(
+                max_length - 1 if self.data_args.append_eos_token else max_length
+            ),
             return_attention_mask=False,
             return_token_type_ids=False,
             add_special_tokens=True,
         )
         if self.data_args.append_eos_token:
-            collated_texts['input_ids'] = [x + [self.tokenizer.eos_token_id] for x in collated_texts['input_ids']]
+            collated_texts["input_ids"] = [
+                x + [self.tokenizer.eos_token_id] for x in collated_texts["input_ids"]
+            ]
+
         collated_texts = self.tokenizer.pad(
             collated_texts,
-            padding=True, 
+            padding=True,
             pad_to_multiple_of=self.data_args.pad_to_multiple_of,
             return_attention_mask=True,
-            return_tensors='pt',
+            return_tensors="pt",
         )
         return text_ids, collated_texts

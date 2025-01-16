@@ -14,7 +14,7 @@ from torch.nn.utils import clip_grad_norm_
 import copy
 
 import torch.nn.functional as F
-from datasets import load_dataset
+from datasets import load_dataset, load_from_disk
 
 import os
 
@@ -22,6 +22,7 @@ import logging
 
 import json
 
+import numpy as np
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(
@@ -69,13 +70,21 @@ class MATESQueryAttribution:
             jsonl_path=valid_dataset_path,
         )
 
-        data_files = [f"en_{str(i).zfill(2)}.jsonl" for i in range(24)]
-        self.dataset = load_dataset(
-            "XBKYS/minicpm-embedding-data",
-            data_files=data_files,
-            split="train",
-            cache_dir=data_args.dataset_cache_dir,
+        self.learning_rate = training_args.learning_rate
+        print(f"Leatning rate: {self.learning_rate}.")
+
+        # data_files = [f"en_{str(i).zfill(2)}.jsonl" for i in range(24)]
+        # self.dataset = load_dataset(
+        #     "XBKYS/minicpm-embedding-data",
+        #     data_files=data_files,
+        #     split="train",
+        #     cache_dir=data_args.dataset_cache_dir,
+        # )
+        self.dataset = load_from_disk(
+            "/data/user_data/jmcoelho/datasets/minicpm_embedding_unsupervised_queries/llama_generated_clean_set2_Qwen2.5-0.5B-bidirectional-attn-mntp"
         )
+
+        # self.dataset = self.dataset.shuffle(seed=42).select(range(100000))
 
         print(f"Sharding in {data_args.dataset_number_of_shards} shards.")
         print(f"Processing shard {data_args.dataset_shard_index}.")
@@ -108,7 +117,13 @@ class MATESQueryAttribution:
             self.build_negative_cache()
 
     def set_seed(self, seed):
-        random.seed(seed)
+        random.seed(seed)  # Set seed for Python's random module
+        np.random.seed(seed)  # Set seed for NumPy
+        torch.manual_seed(seed)  # Set seed for PyTorch (CPU)
+        torch.cuda.manual_seed(seed)  # Set seed for PyTorch (CUDA)
+        torch.cuda.manual_seed_all(seed)  # Set seed for all GPUs
+        torch.backends.cudnn.deterministic = True  # Ensure deterministic behavior
+        torch.backends.cudnn.benchmark = False  # Avoids non-deterministic algorithms
 
     def build_negative_cache(self, batch_size=300, cache_size=2874):
         self.model.eval()
@@ -260,6 +275,13 @@ class MATESQueryAttribution:
 
     def get_subsetvalid_loss(self, q, d, qv, dv):
 
+        with torch.no_grad():
+            with torch.cuda.amp.autocast(dtype=torch.bfloat16):
+                loss = self.model(qv, dv, use_cache=False).loss
+
+        print(loss)
+        exit()
+
         self.model.train()
 
         with torch.cuda.amp.autocast(dtype=torch.bfloat16):  # HACK hardcoded to bf16
@@ -272,7 +294,7 @@ class MATESQueryAttribution:
             loss.backward(gradient=torch.ones_like(loss))
 
         clip_grad_norm_(self.model.parameters(), max_norm=1.0)
-        optimizer = torch.optim.AdamW(self.model.parameters(), lr=1e-5)
+        optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.learning_rate)
         optimizer.step()
         optimizer.zero_grad()
 
@@ -286,6 +308,7 @@ class MATESQueryAttribution:
 
         self.model.load_state_dict(self.model_copy.state_dict())
         self.model.train()
+
         return final
 
     def get_subset_and_full_valid_loss(self, q, d, qv, dv, D):
@@ -302,30 +325,25 @@ class MATESQueryAttribution:
             loss.backward(gradient=torch.ones_like(loss))
 
         clip_grad_norm_(self.model.parameters(), max_norm=1.0)
-        optimizer = torch.optim.AdamW(self.model.parameters(), lr=1e-5)
+        optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.learning_rate)
         optimizer.step()
         optimizer.zero_grad()
 
         self.model.eval()
 
-        with torch.no_grad():
-            with torch.cuda.amp.autocast(dtype=torch.bfloat16):
-                loss = self.model(qv, dv, use_cache=False).loss
-
-        subset_loss = loss.item()
-
         all_losses = []
         for qv, dv in D:
             with torch.no_grad():
                 with torch.cuda.amp.autocast(dtype=torch.bfloat16):
-                    loss = self.model(qv, dv, use_cache=False).loss
+                    # loss = self.model(qv, dv, use_cache=False).loss
+                    loss = self.model(qv, dv).loss
                     all_losses.append(loss.item())
 
         total_loss = sum(all_losses) / len(all_losses)
 
         self.model.load_state_dict(self.model_copy.state_dict())
         self.model.train()
-        return subset_loss, total_loss, all_losses
+        return total_loss, all_losses
 
     def get_mates_score(self, example) -> list[str]:
 
@@ -369,23 +387,18 @@ class MATESQueryAttribution:
         with open(outpath, "a") as h1:
             for i, example in enumerate(tqdm(dataset_to_process)):
 
-                query = (
-                    example["query"][1]
-                    .replace("\t", "")
-                    .replace("\n", "")
-                    .replace("\r", "")
-                )
+                query_id = example["query_id"][0]
 
                 valid_loss, valid_instances_group = self.get_mates_score(example)
 
-                h1.write(f"{query}\t{valid_loss}\t{valid_instances_group}\n")
+                h1.write(f"{query_id}\t{valid_loss}\t{valid_instances_group}\n")
 
                 if i % 10 == 0:
                     h1.flush()
 
     def get_valid_corr(self, outpath):
 
-        sampled_dataset = self.dataset.shuffle(seed=42).select(range(75))
+        sampled_dataset = self.dataset.shuffle(seed=42).select(range(40))
         with open(outpath, "w") as h1:
             for i, example in enumerate(tqdm(sampled_dataset), 1):
 
@@ -398,14 +411,14 @@ class MATESQueryAttribution:
 
                 q, d = self.tokenize(queries, documents)
 
-                valid_instances_group = 14
+                # valid_instances_group = 23
+                # valid_instances_group = 14
                 qv, dv = self.all_valid_groups[valid_instances_group]
 
-                subset_loss, total_loss, all_full_batch_losses = (
-                    self.get_subset_and_full_valid_loss(
-                        q, d, qv, dv, self.all_valid_groups_full_negs
-                    )
+                total_loss, all_full_batch_losses = self.get_subset_and_full_valid_loss(
+                    q, d, qv, dv, self.all_valid_groups_full_negs
                 )
+                print(total_loss)
 
                 query = (
                     example["query"][1]
@@ -415,7 +428,7 @@ class MATESQueryAttribution:
                 )
 
                 h1.write(
-                    f"{query}\t{subset_loss}\t{total_loss}\t{','.join([str(x) for x in all_full_batch_losses])}\n"
+                    f"{query}\t{total_loss}\t{','.join([str(x) for x in all_full_batch_losses])}\n"
                 )
 
 
@@ -433,11 +446,12 @@ def main():
         training_args: TrainingArguments
 
     N_VALID_Q = 100
-    N_VALID_N = 2
+    N_VALID_N = 6
+    NEG_CACHE = True
 
     attribution_method = MATESQueryAttribution(
         valid_dataset_path="/data/user_data/jmcoelho/embeddings/marco_docs/Qwen2.5-0.5B-bidirectional-attn-avg-pool-mntp-finetune-ep1/pretokenized/val_shuf_subset.jsonl",
-        use_negative_cache=True,
+        use_negative_cache=NEG_CACHE,
         n_valid_queries=N_VALID_Q,
         n_valid_negs=N_VALID_N,
         model_args=model_args,
@@ -445,13 +459,15 @@ def main():
         training_args=training_args,
     )
 
+    shard_index_str = str(data_args.dataset_shard_index).zfill(
+        len(str(data_args.dataset_number_of_shards - 1))
+    )
+
     attribution_method.set_seed(17121998)
     # attribution_method.get_valid_corr(
-    #     outpath=f"{training_args.output_dir}_{data_args.dataset_shard_index}"
+    #     outpath=f"{training_args.output_dir}_{shard_index_str}"
     # )
-    attribution_method.run(
-        outpath=f"{training_args.output_dir}_{data_args.dataset_shard_index}"
-    )
+    attribution_method.run(outpath=f"{training_args.output_dir}_{shard_index_str}")
 
 
 if __name__ == "__main__":

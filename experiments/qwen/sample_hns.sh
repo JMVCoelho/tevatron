@@ -1,24 +1,21 @@
 #!/bin/bash
 
-#SBATCH --job-name=qwen-pretrain
-# The line below writes to a logs dir inside the one where sbatch was called
-# %x will be replaced by the job name, and %j by the job id
-
+#SBATCH --job-name=qwen-retriever-inference
 #SBATCH --output=logs/%x-%j.out
 #SBATCH -e logs/%x-%j.err
-#SBATCH -n 1 # Number of tasks
-#SBATCH --cpus-per-task 12 # number cpus (threads) per task
-
-# 327680
-#SBATCH --mem=50G # Memory - Use up to 2GB per requested CPU as a rule of thumb
-#SBATCH --time=0 # No time limit
-
-
+#SBATCH --partition=general
+#SBATCH --cpus-per-task=12
+#SBATCH --mem=50G
+#SBATCH --time=2-00:00:00
 
 
 eval "$(conda shell.bash hook)"
-conda activate cmu-llms-hw3
+conda activate tevatron
 
+if [ -e "$3" ]; then
+    echo "Output file $3 already exists -- negatives have been already sampled."
+    exit 0
+fi
 
 if [ -z "$5" ]; then
     python scripts/hn_mining_ids.py --qrels_path "$1" --run_path "$2" --out_path "$3" --n "$4"

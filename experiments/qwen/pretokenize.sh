@@ -1,20 +1,16 @@
 #!/bin/bash
 
-#SBATCH --job-name=qwen-pretrain
-# The line below writes to a logs dir inside the one where sbatch was called
-# %x will be replaced by the job name, and %j by the job id
-
+#SBATCH --job-name=qwen-retriever-inference
 #SBATCH --output=logs/%x-%j.out
 #SBATCH -e logs/%x-%j.err
-#SBATCH -n 1 # Number of tasks
-#SBATCH --cpus-per-task 64 # number cpus (threads) per task
+#SBATCH --partition=general
+#SBATCH --cpus-per-task=64
+#SBATCH --mem=200G
+#SBATCH --time=2-00:00:00
 
-# 327680
-#SBATCH --mem=200G # Memory - Use up to 2GB per requested CPU as a rule of thumb
-#SBATCH --time=0 # No time limit
 
 eval "$(conda shell.bash hook)"
-conda activate cmu-llms-hw3
+conda activate tevatron
 
 trained_model_name=$1
 save_pretok=$2
@@ -24,7 +20,7 @@ negs=$5
 
 text_length=512
 
-data_path=/data/jcoelho/datasets/babel/
+data_path=/data/user_data/jmcoelho/datasets/marco/documents/
 
 train_qrels=$data_path/qrels.train.tsv
 corpus=$data_path/corpus_firstp_2048.tsv
@@ -32,10 +28,15 @@ train_queries=$data_path/train.query.filtered.txt
 
 initial_data_save_folder=$save_pretok
 
+if [ -e "$initial_data_save_folder/train.jsonl" ]; then
+    echo "$initial_data_save_folder/train.jsonl already exists. Exiting."
+    exit 0
+fi
+
 mkdir -p $initial_data_save_folder
 
 python scripts/pretokenize.py \
-   --tokenizer_name /user/home/jcoelho/Qwen/models/$trained_model_name \
+   --tokenizer_name /data/user_data/jmcoelho/models/$trained_model_name \
    --negative_file $negative_file\
    --qrels $train_qrels  \
    --queries $train_queries  \

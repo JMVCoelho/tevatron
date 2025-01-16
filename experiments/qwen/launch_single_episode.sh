@@ -1,10 +1,10 @@
 
-BASE_MODEL=Qwen2.5-0.5B-marco-cpt-512-bidirectional-attn-contrastive-pretrain-avg-pool-fine-tune-ep1
-FINAL_MODEL_NAME=Qwen2.5-0.5B-bidirectional-attn-wavg-pool-mntp-minicpmembed-RR-2.1M-filtered-unsupervised-queries
-EMBEDDING_OUTPUT_DIR=/data/jcoelho/embeddings/babel/
+BASE_MODEL=Qwen2.5-0.5B-bidirectional-attn-wavg-pool-mntp-fine-tune-ep2
+FINAL_MODEL_NAME=Qwen2.5-0.5B-bidirectional-attn-avg-pool-mntp-minicpmembed-100k-baseset2-mates-dpo7
+EMBEDDING_OUTPUT_DIR=/data/user_data/jmcoelho/embeddings/marco_docs/
 NUM_NEGS=9
 MOMENTUM_MODEL="Qwen2.5-0.5B-marco-cpt-512-bidirectional-attn-contrastive-pretrain-avg-pool"
-POOLING=wavg
+POOLING=avg
 
 # SAMPLE SELF-HARD NEGATIVES 
 #############################
@@ -47,20 +47,13 @@ POOLING=wavg
 # EVAL
 #############################
 
-JOB9_ID=357661
-
-JOB10_ID=$(sbatch -d afterok:$JOB9_ID experiments/qwen/inference_documents.sh 0 $FINAL_MODEL_NAME $POOLING | awk '{print $NF}')
-JOB11_ID=$(sbatch -d afterok:$JOB9_ID experiments/qwen/inference_documents.sh 1 $FINAL_MODEL_NAME $POOLING | awk '{print $NF}')
-JOB12_ID=$(sbatch -d afterok:$JOB9_ID experiments/qwen/inference_documents.sh 2 $FINAL_MODEL_NAME $POOLING | awk '{print $NF}')
-JOB13_ID=$(sbatch -d afterok:$JOB9_ID experiments/qwen/inference_documents.sh 3 $FINAL_MODEL_NAME $POOLING | awk '{print $NF}')
-JOB14_ID=$(sbatch -d afterok:$JOB9_ID experiments/qwen/inference_queries_marco_dev.sh $FINAL_MODEL_NAME $POOLING | awk '{print $NF}')
+JOB10_ID=$(sbatch -d afterok:3864580 experiments/qwen/inference_documents_sharded.sh $FINAL_MODEL_NAME $POOLING | awk '{print $NF}')
+JOB14_ID=$(sbatch -d afterok:3864580 experiments/qwen/inference_queries_marco_dev.sh $FINAL_MODEL_NAME $POOLING | awk '{print $NF}')
+#JOB15_ID=$(sbatch  experiments/qwen/inference_queries_marco_train.sh $FINAL_MODEL_NAME $POOLING | awk '{print $NF}')
 
 echo "Submitted batch job $JOB10_ID"
-echo "Submitted batch job $JOB11_ID"
-echo "Submitted batch job $JOB12_ID"
-echo "Submitted batch job $JOB13_ID"
 echo "Submitted batch job $JOB14_ID"
 
-JOB6_ID=$(sbatch -d afterok:$JOB10_ID,$JOB11_ID,$JOB12_ID,$JOB13_ID,$JOB14_ID experiments/qwen/search_marco_dev.sh $FINAL_MODEL_NAME | awk '{print $NF}')
+JOB6_ID=$(sbatch -d afterok:$JOB10_ID,$JOB14_ID experiments/qwen/search_marco_dev.sh $FINAL_MODEL_NAME | awk '{print $NF}')
 
 echo "Submitted batch job $JOB6_ID"

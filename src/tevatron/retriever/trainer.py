@@ -51,4 +51,11 @@ class TevatronTrainer(Trainer):
 
     def training_step(self, *args):
         return super(TevatronTrainer, self).training_step(*args) / self._dist_loss_scale_factor
+    
+    def prediction_step(self, model, inputs, prediction_loss_only, ignore_keys):
+
+        with torch.no_grad():
+            loss = self.compute_loss(model, inputs) / self._dist_loss_scale_factor
+
+        return (loss, None, None)
 

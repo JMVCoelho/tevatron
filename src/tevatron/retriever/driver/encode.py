@@ -15,11 +15,16 @@ from transformers import (
     HfArgumentParser,
 )
 
-from tevatron.retriever.arguments import ModelArguments, DataArguments, \
-    TevatronTrainingArguments as TrainingArguments
+from tevatron.retriever.arguments import (
+    ModelArguments,
+    DataArguments,
+    TevatronTrainingArguments as TrainingArguments,
+)
 from tevatron.retriever.dataset import EncodeDataset
 from tevatron.retriever.collator import EncodeCollator
 from tevatron.retriever.modeling import EncoderOutput, DenseModel
+
+from sklearn.preprocessing import normalize
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +32,9 @@ logger = logging.getLogger(__name__)
 def main():
     parser = HfArgumentParser((ModelArguments, DataArguments, TrainingArguments))
     if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
-        model_args, data_args, training_args = parser.parse_json_file(json_file=os.path.abspath(sys.argv[1]))
+        model_args, data_args, training_args = parser.parse_json_file(
+            json_file=os.path.abspath(sys.argv[1])
+        )
     else:
         model_args, data_args, training_args = parser.parse_args_into_dataclasses()
         model_args: ModelArguments
@@ -35,7 +42,7 @@ def main():
         training_args: TrainingArguments
 
     if training_args.local_rank > 0 or training_args.n_gpu > 1:
-        raise NotImplementedError('Multi-GPU encoding is not supported.')
+        raise NotImplementedError("Multi-GPU encoding is not supported.")
 
     # Setup logging
     logging.basicConfig(
@@ -44,14 +51,17 @@ def main():
         level=logging.INFO if training_args.local_rank in [-1, 0] else logging.WARN,
     )
 
-
     tokenizer = AutoTokenizer.from_pretrained(
-        model_args.tokenizer_name if model_args.tokenizer_name else model_args.model_name_or_path,
-        cache_dir=model_args.cache_dir
+        (
+            model_args.tokenizer_name
+            if model_args.tokenizer_name
+            else model_args.model_name_or_path
+        ),
+        cache_dir=model_args.cache_dir,
     )
     if tokenizer.pad_token_id is None:
         tokenizer.pad_token_id = tokenizer.eos_token_id
-    tokenizer.padding_side = 'right'
+    tokenizer.padding_side = "right"
 
     if training_args.bf16:
         torch_dtype = torch.bfloat16
@@ -59,15 +69,36 @@ def main():
         torch_dtype = torch.float16
     else:
         torch_dtype = torch.float32
-    
+
     model = DenseModel.load(
         model_args.model_name_or_path,
         pooling=model_args.pooling,
         normalize=model_args.normalize,
         lora_name_or_path=model_args.lora_name_or_path,
         cache_dir=model_args.cache_dir,
-        torch_dtype=torch_dtype
+        torch_dtype=torch_dtype,
     )
+
+    if model_args.matrioshka_linear_layer is not None:
+        vector_dim = model_args.matrioshka_linear_layer
+        vector_linear_directory = f"2_Dense_{vector_dim}"
+
+        vector_linear = torch.nn.Linear(
+            in_features=model.config.hidden_size, out_features=vector_dim
+        )
+        vector_linear_dict = {
+            k.replace("linear.", ""): v
+            for k, v in torch.load(
+                os.path.join(
+                    model_args.model_name_or_path,
+                    f"{vector_linear_directory}/pytorch_model.bin",
+                )
+            ).items()
+        }
+        vector_linear.load_state_dict(vector_linear_dict)
+        vector_linear.cuda()
+
+        print(f"Loaded matrioshka projection: {vector_linear}")
 
     encode_dataset = EncodeDataset(
         data_args=data_args,
@@ -99,22 +130,39 @@ def main():
         print("Set encoding precision: bf16")
         dtype = torch.bfloat16
 
-    for (batch_ids, batch) in tqdm(encode_loader):
+    for batch_ids, batch in tqdm(encode_loader):
         lookup_indices.extend(batch_ids)
-        with torch.cuda.amp.autocast(dtype=dtype) if dtype is not None else nullcontext():
+        with (
+            torch.cuda.amp.autocast(dtype=dtype) if dtype is not None else nullcontext()
+        ):
             with torch.no_grad():
                 for k, v in batch.items():
                     batch[k] = v.to(training_args.device)
                 if data_args.encode_is_query:
-                    model_output: EncoderOutput = model(query=batch)
-                    encoded.append(model_output.q_reps.cpu().detach().numpy())
+                    if model_args.matrioshka_linear_layer is None:
+                        model_output: EncoderOutput = model(query=batch)
+                        encoded.append(model_output.q_reps.cpu().detach().numpy())
+                    else:
+                        model_output: EncoderOutput = model(query=batch)
+                        query_reps = normalize(
+                            vector_linear(model_output.q_reps).cpu().detach().numpy()
+                        )
+                        encoded.append(query_reps)
+
                 else:
-                    model_output: EncoderOutput = model(passage=batch)
-                    encoded.append(model_output.p_reps.cpu().detach().numpy())
+                    if model_args.matrioshka_linear_layer is None:
+                        model_output: EncoderOutput = model(passage=batch)
+                        encoded.append(model_output.p_reps.cpu().detach().numpy())
+                    else:
+                        model_output: EncoderOutput = model(passage=batch)
+                        passage_reps = normalize(
+                            vector_linear(model_output.p_reps).cpu().detach().numpy()
+                        )
+                        encoded.append(passage_reps)
 
     encoded = np.concatenate(encoded)
 
-    with open(data_args.encode_output_path, 'wb') as f:
+    with open(data_args.encode_output_path, "wb") as f:
         pickle.dump((encoded, lookup_indices), f)
 
 

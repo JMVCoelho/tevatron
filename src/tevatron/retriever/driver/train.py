@@ -1,6 +1,7 @@
 import logging
 import os
 import sys
+from transformers.trainer_utils import get_last_checkpoint
 
 from transformers import AutoTokenizer
 from transformers import (
@@ -8,9 +9,16 @@ from transformers import (
     set_seed,
 )
 
-from tevatron.retriever.arguments import ModelArguments, DataArguments, \
-    TevatronTrainingArguments as TrainingArguments
-from tevatron.retriever.dataset import TrainDataset, TrainDatasetPreprocessed, MiniCPM_UnsupervisedDataset
+from tevatron.retriever.arguments import (
+    ModelArguments,
+    DataArguments,
+    TevatronTrainingArguments as TrainingArguments,
+)
+from tevatron.retriever.dataset import (
+    TrainDataset,
+    TrainDatasetPreprocessed,
+    MiniCPM_UnsupervisedDataset,
+)
 from tevatron.retriever.collator import TrainCollator, TrainCollatorPreprocessed
 from tevatron.retriever.modeling import DenseModel
 from tevatron.retriever.trainer import TevatronTrainer as Trainer
@@ -23,7 +31,9 @@ def main():
     parser = HfArgumentParser((ModelArguments, DataArguments, TrainingArguments))
 
     if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
-        model_args, data_args, training_args = parser.parse_json_file(json_file=os.path.abspath(sys.argv[1]))
+        model_args, data_args, training_args = parser.parse_json_file(
+            json_file=os.path.abspath(sys.argv[1])
+        )
     else:
         model_args, data_args, training_args = parser.parse_args_into_dataclasses()
         model_args: ModelArguments
@@ -31,10 +41,10 @@ def main():
         training_args: TrainingArguments
 
     if (
-            os.path.exists(training_args.output_dir)
-            and os.listdir(training_args.output_dir)
-            and training_args.do_train
-            and not training_args.overwrite_output_dir
+        os.path.exists(training_args.output_dir)
+        and os.listdir(training_args.output_dir)
+        and training_args.do_train
+        and not training_args.overwrite_output_dir
     ):
         raise ValueError(
             f"Output directory ({training_args.output_dir}) already exists and is not empty. Use --overwrite_output_dir to overcome."
@@ -60,14 +70,18 @@ def main():
     set_seed(training_args.seed)
 
     tokenizer = AutoTokenizer.from_pretrained(
-        model_args.tokenizer_name if model_args.tokenizer_name else model_args.model_name_or_path,
+        (
+            model_args.tokenizer_name
+            if model_args.tokenizer_name
+            else model_args.model_name_or_path
+        ),
         cache_dir=model_args.cache_dir,
     )
 
     if tokenizer.pad_token_id is None:
         tokenizer.pad_token_id = tokenizer.eos_token_id
-    tokenizer.padding_side = 'right'
-    
+    tokenizer.padding_side = "right"
+
     model = DenseModel.build(
         model_args,
         training_args,
@@ -79,28 +93,61 @@ def main():
         num_negs = 5
         num_pos = 1
         if data_args.train_group_size != num_negs + num_pos:
-            logger.info(f"This dataset contains {num_pos} positive and {num_negs} negative per query. Setting group_size to {num_negs + num_pos}.")
+            logger.info(
+                f"This dataset contains {num_pos} positive and {num_negs} negative per query. Setting group_size to {num_negs + num_pos}."
+            )
             data_args.train_group_size = num_negs + num_pos
-            
+
         train_dataset = MiniCPM_UnsupervisedDataset(data_args)
+        eval_dataset = MiniCPM_UnsupervisedDataset(data_args, is_eval=True)
         collator = TrainCollator(data_args, tokenizer)
         train_dataset.tokenizer = tokenizer
+        eval_dataset.tokenizer = tokenizer
 
     else:
-        train_dataset = TrainDataset(data_args) if data_args.dataset_path is None else TrainDatasetPreprocessed(data_args)
-        collator = TrainCollator(data_args, tokenizer) if data_args.dataset_path is None else TrainCollatorPreprocessed(data_args, tokenizer)
+        train_dataset = (
+            TrainDataset(data_args)
+            if data_args.dataset_path is None
+            else TrainDatasetPreprocessed(data_args)
+        )
+        collator = (
+            TrainCollator(data_args, tokenizer)
+            if data_args.dataset_path is None
+            else TrainCollatorPreprocessed(data_args, tokenizer)
+        )
         train_dataset.tokenizer = tokenizer
+
+        if data_args.eval_dataset_path is not None:
+            eval_dataset = TrainDatasetPreprocessed(data_args, is_eval=True)
+            eval_dataset.tokenizer = tokenizer
+
+        else:
+            eval_dataset = None
 
     trainer_cls = GCTrainer if training_args.grad_cache else Trainer
     trainer = trainer_cls(
         model=model,
         args=training_args,
         train_dataset=train_dataset,
-        data_collator=collator
+        eval_dataset=eval_dataset,
+        data_collator=collator,
     )
     train_dataset.trainer = trainer
 
-    trainer.train()  # TODO: resume training
+    if eval_dataset is not None:
+        eval_dataset.trainer = trainer
+
+    last_checkpoint = None
+    if model_args.checkpoint is not None and os.path.isdir(model_args.checkpoint):
+        last_checkpoint = get_last_checkpoint(model_args.checkpoint)
+        print("Resuming from checkpoint")
+        print(last_checkpoint)
+
+    trainer.train(
+        resume_from_checkpoint=(
+            last_checkpoint if last_checkpoint is not None else False
+        )
+    )
     trainer.save_model()
     if trainer.is_world_process_zero():
         tokenizer.save_pretrained(training_args.output_dir)

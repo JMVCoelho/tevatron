@@ -16,36 +16,23 @@ eval "$(conda shell.bash hook)"
 conda activate tevatron
 module load cuda-12.4
 
-trained_model_name=$1
+trained_model_name=Qwen2.5-0.5B-bidirectional-attn-mntp
 
 EMBEDDING_OUTPUT_DIR=/data/user_data/jmcoelho/embeddings/marco_docs/
 mkdir $EMBEDDING_OUTPUT_DIR/$trained_model_name
 
-OUTPUT_FILE=$EMBEDDING_OUTPUT_DIR/$trained_model_name/run.train.trec
-
+subset=all
 if [ -f "$OUTPUT_FILE" ]; then
   echo "File $OUTPUT_FILE already exists. Skipping search."
 else
   echo "Searching..."
 
     set -f && OMP_NUM_THREADS=24 python -m tevatron.retriever.driver.search \
-        --query_reps $EMBEDDING_OUTPUT_DIR/$trained_model_name/query-marco-train.pkl \
-        --passage_reps $EMBEDDING_OUTPUT_DIR/$trained_model_name/corpus*.pkl \
+        --query_reps $EMBEDDING_OUTPUT_DIR/$trained_model_name/query-gen2-mates-dpo7-${subset}.pkl \
+        --passage_reps $EMBEDDING_OUTPUT_DIR/$trained_model_name/corpus.cweb.*.pkl \
         --depth 100 \
         --batch_size 128 \
         --save_text \
-        --save_ranking_to $EMBEDDING_OUTPUT_DIR/$trained_model_name/run.train.txt
-
-
-    python src/tevatron/utils/format/convert_result_to_trec.py \
-        --input $EMBEDDING_OUTPUT_DIR/$trained_model_name/run.train.txt \
-        --output $OUTPUT_FILE
-
-
-    qrels=/data/user_data/jmcoelho/datasets/marco/documents/qrels.train.tsv
-    trec_run=$OUTPUT_FILE
-
-    python scripts/eval_trec.py $qrels $trec_run
-    python scripts/eval_trec.py -m mrr_cut.100 $qrels $trec_run
+        --save_ranking_to $EMBEDDING_OUTPUT_DIR/$trained_model_name/run.gen2.mates.dpo7.${subset}.txt
     
 fi

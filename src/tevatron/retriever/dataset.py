@@ -148,28 +148,38 @@ class TrainDataset(Dataset):
 
 
 class MiniCPM_UnsupervisedDataset(Dataset):
-    def __init__(self, data_args: DataArguments, trainer=None):
+    def __init__(self, data_args: DataArguments, trainer=None, is_eval=False):
         self.data_args = data_args
 
-        # data_files = [f"en_{str(i).zfill(2)}.jsonl" for i in range(24)]
-        # self.train_data = load_dataset("XBKYS/minicpm-embedding-data", data_files=data_files, split="train")
-        # # self.train_data = load_dataset("XBKYS/minicpm-embedding-data", data_files={
-        # #         'train': [f'en_{i:02d}.jsonl' for i in range(24)]
-        # # }, cache_dir=self.data_args.dataset_cache_dir)
+        self.is_eval = is_eval
 
-        # self.train_data = self.train_data.shuffle(seed=42).select(range(180000))
+        if not is_eval:
+            data_files = "only_syn.jsonl"
+            # self.train_data = load_dataset(
+            #     "XBKYS/minicpm-embedding-data", data_files=data_files, split="train"
+            # )
 
-        print("HARDCODED: Loading a filtered version from disk.")
-        self.train_data = load_from_disk(
-            "/data/user_data/jmcoelho/datasets/minicpm_embedding_unsupervised_queries/mates_15q_6d_multiple_valid"
-        )
-
-        if self.data_args.dataset_number_of_shards > 1:
-            self.encode_data = self.encode_data.shard(
-                num_shards=self.data_args.dataset_number_of_shards,
-                index=self.data_args.dataset_shard_index,
+            # self.train_data = self.train_data.shuffle(seed=42).select(range(20000))
+            self.train_data = load_from_disk(
+                "/data/user_data/jmcoelho/datasets/minicpm_embedding_unsupervised_queries/llama_generated_set2_after_dpo_mates7_Qwen2.5-0.5B-bidirectional-attn-mntp"
             )
-        self.trainer = trainer
+
+            # self.train_data = self.train_data.shuffle(seed=42).select(range(100000))
+            # print(len(self.train_data))
+
+            # self.train_data = load_from_disk(
+            #     "/data/user_data/jmcoelho/datasets/minicpm_embedding_unsupervised_queries/mates_neg_cache_loss_100_6_subset_corrected"
+            # )
+
+            self.trainer = trainer
+
+        else:
+            self.train_data = load_from_disk(
+                "/data/user_data/jmcoelho/datasets/minicpm_embedding_unsupervised_queries/valid_marco_2500"
+            )
+
+            print(len(self.train_data))
+            self.trainer = trainer
 
     def __len__(self):
         try:
@@ -211,7 +221,8 @@ class MiniCPM_UnsupervisedDataset(Dataset):
             format_passage(pos_psg, "", self.data_args.passage_prefix)
         )
 
-        negative_size = self.data_args.train_group_size - 1
+        negative_size = self.data_args.train_group_size - 1 if not self.is_eval else 9
+
         if len(group_negatives) < negative_size:
             negs = random.choices(group_negatives, k=negative_size)
         elif self.data_args.train_group_size == 1:
@@ -236,19 +247,25 @@ class MiniCPM_UnsupervisedDataset(Dataset):
 class TrainDatasetPreprocessed(Dataset):
     def __init__(self, data_args: DataArguments, trainer=None, is_eval=False):
         self.data_args = data_args
-        self.train_data = load_dataset(
-            self.data_args.dataset_name,
-            self.data_args.dataset_config,
-            data_files=self.data_args.dataset_path,
-            split=self.data_args.dataset_split,
-            cache_dir=self.data_args.dataset_cache_dir,
-        )
 
-        if self.data_args.dataset_number_of_shards > 1:
-            self.encode_data = self.encode_data.shard(
-                num_shards=self.data_args.dataset_number_of_shards,
-                index=self.data_args.dataset_shard_index,
+        if is_eval:
+            self.train_data = load_dataset(
+                self.data_args.dataset_name,
+                self.data_args.dataset_config,
+                data_files=self.data_args.eval_dataset_path,
+                split=self.data_args.dataset_split,
+                cache_dir=self.data_args.dataset_cache_dir,
             )
+
+        else:
+            self.train_data = load_dataset(
+                self.data_args.dataset_name,
+                self.data_args.dataset_config,
+                data_files=self.data_args.dataset_path,
+                split=self.data_args.dataset_split,
+                cache_dir=self.data_args.dataset_cache_dir,
+            )
+
         self.trainer = trainer
 
     def create_one_example(self, text_encoding: List[int], is_query=False):

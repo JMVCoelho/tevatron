@@ -79,7 +79,7 @@ class SimpleTrainPreProcessor:
             data_files=self.collection_file,
             column_names=self.columns,
             delimiter='\t',
-            #cache_dir="/data/datasets/hf_cache",
+            cache_dir="/data/datasets/hf_cache",
         )['train']
 
     @staticmethod

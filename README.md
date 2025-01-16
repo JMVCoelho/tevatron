@@ -349,3 +349,8 @@ You can also reach out to us for general comments/suggestions/questions through 
 
 * We thank all the contributors of dependency libraries.
 * We thank Google's [TPU research cloud](https://sites.research.google/trc/about/) for providing TPU resources.
+
+
+
+Transformers 4.45 bug in /home/jmcoelho/miniconda3/envs/tevatron/lib/python3.11/site-packages/transformers/models/auto/auto_factory.py
+https://github.com/huggingface/transformers/pull/24785/commits/1e33004a38b089d65cbea1c3bb6a0996f97f9dbb
